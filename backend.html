@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>社區客服系統後台 Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .navbar-brand { font-weight: 800; letter-spacing:.5px; }
+    .tile{
+      position:relative;display:block;border:0;border-radius:18px;
+      padding:24px;min-height:200px;background-size:cover;background-position:center;
+      overflow:hidden;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25);
+      box-shadow:0 10px 24px rgba(0,0,0,.08);cursor:pointer;
+      transition:transform .15s, box-shadow .15s, filter .15s;
+    }
+    .tile:hover{ transform:translateY(-2px);box-shadow:0 16px 36px rgba(0,0,0,.14);filter:saturate(1.05);}
+    .tile-overlay{ position:absolute; inset:0; background:rgba(0,163,153,.88); }
+    .tile-items{ line-height:1.9; font-weight:600; opacity:.98; }
+  </style>
+</head>
+<body>
+
+<!-- 導覽列 -->
+<nav class="navbar navbar-expand-lg bg-white border-bottom">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="#!" onclick="backHome()">社區客服系統</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="topNav">
+
+      <!-- 中間：五大分類 -->
+      <ul class="navbar-nav ms-3">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">🏠 住戶與人員管理類</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('resident')">住戶資料</a></li>
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('staff')">主委、清潔人員資料</a></li>
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('visitor')">訪客紀錄</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">💰 財務與管理類</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('fee')">管理費</a></li>
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('expenditure')">財務支出</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">📢 公告與活動類</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('announcement')">社區公告</a></li>
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('activity')">社區活動時程</a></li>
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('meeting')">會議紀錄</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">🛠️ 維修與客服類</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('repair')">報修申請</a></li>
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('maintenance')">維修、保養紀錄</a></li>
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('qa')">客服問答</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">📦 信件與包裹管理類</a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#!" onclick="gotoTab('parcel')">信件包裹</a></li>
+          </ul>
+        </li>
+      </ul>
+
+      <!-- 右側：切換到住戶 + 認證 -->
+      <div class="ms-auto d-flex align-items-center gap-3">
+        <a class="text-decoration-none text-secondary" href="index.html">社區系統後台</a>
+
+        <div id="authCta" class="d-flex gap-2">
+          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuth('login')">登入</button>
+          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuth('register')">註冊</button>
+        </div>
+
+        <!-- 使用者下拉：已移除「回到首頁」，新增 修改資料 / 忘記密碼 -->
+        <div id="authUser" class="dropdown d-none">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+            <span id="authName">住戶</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><h6 class="dropdown-header" id="authMail">user@example.com</h6></li>
+            <li><a class="dropdown-item" href="#!" data-bs-toggle="modal" data-bs-target="#profileModal">修改資料</a></li>
+            <li><a class="dropdown-item" href="#!" data-bs-toggle="modal" data-bs-target="#resetPwdModal">忘記密碼</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#!" onclick="logout()">登出</a></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</nav>
+
+<!-- ===== 內容區 ===== -->
+<div class="container py-4">
+  <div class="text-center mb-5">
+    <h2 class="fw-bold display-6 mb-2">功能與服務</h2>
+  </div>
+
+  <div class="row g-4 mb-4" id="feature-grid"></div>
+
+  <div class="row g-4">
+    <main class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <!-- 功能列（首頁隱藏；進入分頁才顯示） -->
+          <div id="actionBar" class="action-bar mb-3 d-none">
+            <button class="btn btn-success requires-auth" data-action="新增">新增</button>
+            <button class="btn btn-outline-primary requires-auth" data-action="編輯">編輯</button>
+          </div>
+          <div id="tab-content"><!-- JS 注入 --></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===== 登入/註冊 Modal ===== -->
+<div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="authTitle" class="modal-title">登入</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="loginForm">
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input id="loginEmail" type="email" class="form-control" placeholder="name@example.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">密碼</label>
+            <input id="loginPwd" type="password" class="form-control" placeholder="至少 6 碼">
+          </div>
+          <button id="loginBtn" class="btn btn-primary w-100" onclick="handleLogin()">登入</button>
+          <div class="mt-2 small text-muted">測試帳密：test@example.com / 123456</div>
+        </div>
+        <div id="registerForm" class="d-none">
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input id="regEmail" type="email" class="form-control" placeholder="name@example.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">顯示名稱</label>
+            <input id="regName" type="text" class="form-control" placeholder="王小明">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">密碼</label>
+            <input id="regPwd" type="password" class="form-control" placeholder="至少 6 碼">
+          </div>
+          <button class="btn btn-success w-100" onclick="handleRegister()">建立帳號</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="switchAuthBtn" class="btn btn-link" onclick="toggleAuth()">切換到註冊</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 修改資料 Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">修改資料</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Email（不可修改）</label>
+          <input id="pfEmail" type="email" class="form-control" disabled>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">顯示名稱</label>
+          <input id="pfName" type="text" class="form-control" placeholder="您的名稱">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary" onclick="saveProfile()">儲存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 忘記密碼 Modal -->
+<div class="modal fade" id="resetPwdModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">忘記密碼</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2 small text-muted">Demo：將模擬寄出重設密碼連結到您的 Email。</div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input id="fpEmail" type="email" class="form-control" placeholder="name@example.com">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary" onclick="sendReset()">寄送重設信</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 假資料（同前） ===== */
+const demoResidents = [
+  { id: 1, name: "王大明", room: "A101", phone: "0912-345678", car: "ABC-1234", moveIn: "2021-09-01", family: "王太太、王小明" },
+  { id: 2, name: "林小美", room: "A102", phone: "0922-222222", car: "XYZ-5678", moveIn: "2023-06-15", family: "林爸爸、林媽媽" },
+];
+const demoStaff = [
+  { id: 1, name: "李主委", role: "主委", phone: "0933-111111" },
+  { id: 2, name: "陳清潔", role: "清潔人員", phone: "0933-222222" },
+];
+const demoVisitors = [
+  { id: 1, name: "陳訪客", idCard: "A123456789", room: "A101", in: "2025-08-22 10:00", out: "2025-08-22 11:00", note: "送文件" },
+];
+const demoFees = [
+  { id: 1, room: "A101", amount: 1200, due: "2025-09-10", paid: true, invoice: "INV20250801" },
+  { id: 2, room: "A102", amount: 1200, due: "2025-09-10", paid: false, invoice: "INV20250802" },
+];
+const demoAnnouncements = [
+  { id: 1, title: "停水通知", content: "8/25上午9~12點停水。", time: "2025-08-20", author: "李主委", attachment: "" },
+];
+const demoActivities = [
+  { id: 1, name: "中秋烤肉", time: "2025-09-15 18:00", location: "中庭", signup: "現場報名", organizer: "王大明" },
+];
+const demoRepairs = [
+  { id: 1, room: "A101", item: "水龍頭漏水", desc: "廚房水龍頭持續滴水", time: "2025-08-21", status: "處理中", handler: "陳清潔" },
+];
+const demoMaintenances = [
+  { id: 1, equipment: "電梯", item: "年度保養", time: "2025-08-10", handler: "保養公司", cost: 8000, note: "正常" },
+];
+const demoQA = [
+  { id: 1, room: "A101", q: "垃圾怎麼分類？", a: "請依公告分類", status: "已回覆", time: "2025-08-19" },
+];
+const demoMeetings = [
+  { id: 1, topic: "財務審查", time: "2025-08-18", location: "會議室", participants: "主委、住戶代表", record: "討論收支", resolution: "通過" },
+];
+const demoExpenditures = [
+  { id: 1, item: "清潔用品", amount: 1500, date: "2025-08-12", purpose: "大樓清潔", proof: "收據" },
+];
+const demoParcels = [
+  { id: 1, receiver: "王大明", room: "A101", code: "PKG12345", arrival: "2025-08-21 14:00", received: true },
+];
+
+/* ===== tabs / cards：12 項 ===== */
+const tabs = [
+  { key:"resident", label:"住戶資料" },
+  { key:"staff", label:"主委、清潔人員資料" },
+  { key:"visitor", label:"訪客紀錄" },
+  { key:"fee", label:"管理費" },
+  { key:"announcement", label:"社區公告" },
+  { key:"activity", label:"社區活動時程" },
+  { key:"repair", label:"報修申請" },
+  { key:"maintenance", label:"維修、保養紀錄" },
+  { key:"qa", label:"客服問答" },
+  { key:"meeting", label:"會議紀錄" },
+  { key:"expenditure", label:"財務支出" },
+  { key:"parcel", label:"信件包裹" },
+];
+
+const cards = [
+  ["resident","住戶資料","基本資料 ｜ 住戶聯絡 ｜ 車位 ｜ 家庭成員","https://images.unsplash.com/photo-1581091215367-59ab6b3d6321?q=80&w=1600&auto=format&fit=crop"],
+  ["staff","主委、清潔人員資料","主委 ｜ 清潔人員","https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=1600&auto=format&fit=crop"],
+  ["visitor","訪客紀錄","訪客登記 ｜ 到離紀錄","https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1600&auto=format&fit=crop"],
+  ["fee","管理費","金額 ｜ 到期日 ｜ 發票","https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1600&auto=format&fit=crop"],
+  ["announcement","社區公告","停水停電 ｜ 區務通知","https://images.unsplash.com/photo-1529336953121-ad5a0d43d0d2?q=80&w=1600&auto=format&fit=crop"],
+  ["activity","社區活動時程","活動資訊 ｜ 報名方式","https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?q=80&w=1600&auto=format&fit=crop"],
+  ["repair","報修申請","線上報修 ｜ 進度追蹤","https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1600&auto=format&fit=crop"],
+  ["maintenance","維修、保養紀錄","設備 ｜ 項目 ｜ 花費","https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1600&auto=format&fit=crop"],
+  ["qa","客服問答","提問回覆 ｜ 處理狀態","https://images.unsplash.com/photo-1525186402429-b4ff38bedbec?q=80&w=1600&auto=format&fit=crop"],
+  ["meeting","會議紀錄","主題 ｜ 決議事項","https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1600&auto=format&fit=crop"],
+  ["expenditure","財務支出","項目 ｜ 金額 ｜ 憑證","https://images.unsplash.com/photo-1521540216272-a50305cd4421?q=80&w=1600&auto=format&fit=crop"],
+  ["parcel","信件包裹","收發件 ｜ 取件碼","https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?q=80&w=1600&auto=format&fit=crop"],
+];
+
+/* ===== 認證（localStorage 模擬） ===== */
+const AUTH_KEY="demo_auth_user";
+let activeTab=null;
+
+const isLoggedIn=()=>!!localStorage.getItem(AUTH_KEY);
+const getUser =()=>JSON.parse(localStorage.getItem(AUTH_KEY)||"null");
+const setUser =u=>localStorage.setItem(AUTH_KEY,JSON.stringify(u));
+const clearUser=()=>localStorage.removeItem(AUTH_KEY);
+
+function updateAuthUI(){
+  const cta=document.getElementById('authCta');
+  const user=document.getElementById('authUser');
+  if(isLoggedIn()){
+    const u=getUser()||{};
+    cta.classList.add('d-none'); user.classList.remove('d-none');
+    document.getElementById('authName').textContent=u.name||u.email||'使用者';
+    document.getElementById('authMail').textContent=u.email||'user@example.com';
+    unlockActions();
+  }else{
+    cta.classList.remove('d-none'); user.classList.add('d-none');
+    lockActions();
+  }
+}
+
+/* ===== 首頁卡片 ===== */
+function renderCards(){
+  const grid=document.getElementById('feature-grid');
+  grid.innerHTML=cards.map(([key,title,items,bg])=>`
+    <div class="col-12 col-md-6 col-lg-4">
+      <button class="tile w-100 text-start" style="background-image:url('${bg}')" onclick="gotoTab('${key}')">
+        <div class="tile-overlay"></div>
+        <div class="position-relative">
+          <div class="h5 fw-bold mb-2 text-white">${title}</div>
+          <div class="tile-items">${items}</div>
+        </div>
+      </button>
+    </div>
+  `).join('');
+}
+
+/* ===== 首頁 / 分頁切換 ===== */
+function backHome(){
+  document.getElementById('feature-grid').classList.remove('d-none');
+  document.getElementById('tab-content').innerHTML="";
+  document.getElementById('actionBar').classList.add('d-none');  // 首頁隱藏功能列
+  activeTab=null;
+  renderCards();
+}
+
+function gotoTab(key){
+  activeTab=key;
+  document.getElementById('feature-grid').classList.add('d-none');
+  document.getElementById('actionBar').classList.remove('d-none'); // 進入分頁顯示功能列
+  renderTabContent();
+}
+
+/* ===== 功能鎖定（未登入） ===== */
+function lockActions(){
+  document.querySelectorAll('.requires-auth').forEach(btn=>{
+    btn.disabled=false; // 改為提示登入
+    btn.onclick=(e)=>{
+      e.preventDefault();
+      switchAuth('login');
+      const modal=new bootstrap.Modal(document.getElementById('authModal'));
+      modal.show();
+    };
+  });
+}
+function unlockActions(){
+  document.querySelectorAll('.requires-auth').forEach(btn=>{ btn.onclick=null; });
+}
+
+/* ===== 分頁內容 + 通用搜尋 ===== */
+function renderTabContent(){
+  const PLACEHOLDER_MAP = {
+    resident:     '搜尋：姓名 / 房號 / 電話',
+    staff:        '搜尋：姓名 / 職位',
+    visitor:      '搜尋：姓名 / 房號 / 時間',
+    fee:          '搜尋：房號 / 發票',
+    announcement: '搜尋：標題 / 內容 / 發布人',
+    activity:     '搜尋：活動 / 地點',
+    repair:       '搜尋：房號 / 項目 / 狀態',
+    maintenance:  '搜尋：設備 / 項目 / 負責人',
+    qa:           '搜尋：問題 / 回覆 / 房號',
+    meeting:      '搜尋：主題 / 地點 / 參與人',
+    expenditure:  '搜尋：項目 / 用途 / 金額',
+    parcel:       '搜尋：收件人 / 包裹編號'
+  };
+  let html = "";
+
+  if(activeTab==="resident"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-primary"><tr>
+          <th>姓名</th><th>房號</th><th>聯絡方式</th><th>車位</th><th>入住時間</th><th>家庭成員</th>
+        </tr></thead><tbody>
+          ${demoResidents.map(r=>`<tr><td>${r.name}</td><td>${r.room}</td><td>${r.phone}</td><td>${r.car}</td><td>${r.moveIn}</td><td>${r.family}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>住戶資料</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="staff"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-info"><tr><th>姓名</th><th>職位</th><th>聯絡方式</th></tr></thead><tbody>
+          ${demoStaff.map(s=>`<tr><td>${s.name}</td><td>${s.role}</td><td>${s.phone}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>主委、清潔人員資料</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="visitor"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-secondary"><tr>
+          <th>姓名</th><th>身分證</th><th>拜訪房號</th><th>進入時間</th><th>離開時間</th><th>備註</th>
+        </tr></thead><tbody>
+          ${demoVisitors.map(v=>`<tr><td>${v.name}</td><td>${v.idCard}</td><td>${v.room}</td><td>${v.in}</td><td>${v.out}</td><td>${v.note}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>訪客紀錄</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="fee"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-warning"><tr><th>房號</th><th>金額</th><th>到期日</th><th>已繳</th><th>發票號碼</th></tr></thead><tbody>
+          ${demoFees.map(f=>`<tr><td>${f.room}</td><td>${f.amount}</td><td>${f.due}</td><td>${f.paid?'是':'否'}</td><td>${f.invoice}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>管理費</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="announcement"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-success"><tr><th>標題</th><th>內容</th><th>發布時間</th><th>發布人</th><th>附件</th></tr></thead><tbody>
+          ${demoAnnouncements.map(a=>`<tr><td>${a.title}</td><td>${a.content}</td><td>${a.time}</td><td>${a.author}</td><td>${a.attachment}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>社區公告</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="activity"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-success"><tr><th>活動名稱</th><th>時間</th><th>地點</th><th>報名方式</th><th>負責人</th></tr></thead><tbody>
+          ${demoActivities.map(a=>`<tr><td>${a.name}</td><td>${a.time}</td><td>${a.location}</td><td>${a.signup}</td><td>${a.organizer}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>社區活動時程</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="repair"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-danger"><tr><th>房號</th><th>項目</th><th>描述</th><th>申請時間</th><th>狀態</th><th>負責人</th></tr></thead><tbody>
+          ${demoRepairs.map(r=>`<tr><td>${r.room}</td><td>${r.item}</td><td>${r.desc}</td><td>${r.time}</td><td>${r.status}</td><td>${r.handler}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>報修申請</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="maintenance"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-info"><tr><th>設備名稱</th><th>保養項目</th><th>時間</th><th>負責人</th><th>花費</th><th>紀錄</th></tr></thead><tbody>
+          ${demoMaintenances.map(m=>`<tr><td>${m.equipment}</td><td>${m.item}</td><td>${m.time}</td><td>${m.handler}</td><td>${m.cost}</td><td>${m.note}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>維修、保養紀錄</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="qa"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-info"><tr><th>房號</th><th>問題</th><th>回覆</th><th>狀態</th><th>時間</th></tr></thead><tbody>
+          ${demoQA.map(q=>`<tr><td>${q.room}</td><td>${q.q}</td><td>${q.a}</td><td>${q.status}</td><td>${q.time}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>客服問答</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="meeting"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-info"><tr><th>主題</th><th>時間</th><th>地點</th><th>參與人員</th><th>紀錄</th><th>決議事項</th></tr></thead><tbody>
+          ${demoMeetings.map(m=>`<tr><td>${m.topic}</td><td>${m.time}</td><td>${m.location}</td><td>${m.participants}</td><td>${m.record}</td><td>${m.resolution}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>會議紀錄</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="expenditure"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-warning"><tr><th>支出項目</th><th>金額</th><th>日期</th><th>用途</th><th>憑證</th></tr></thead><tbody>
+          ${demoExpenditures.map(e=>`<tr><td>${e.item}</td><td>${e.amount}</td><td>${e.date}</td><td>${e.purpose}</td><td>${e.proof}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>財務支出</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  if(activeTab==="parcel"){
+    const tableHtml = `
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
+        <thead class="table-secondary"><tr><th>收件人</th><th>房號</th><th>包裹編號</th><th>到達時間</th><th>領取狀態</th></tr></thead><tbody>
+          ${demoParcels.map(p=>`<tr><td>${p.receiver}</td><td>${p.room}</td><td>${p.code}</td><td>${p.arrival}</td><td>${p.received?'已領取':'未領取'}</td></tr>`).join('')}
+        </tbody></table></div>`;
+    html = `<h4>信件包裹</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+  }
+
+  document.getElementById('tab-content').innerHTML = html;
+}
+
+function withSearch(tableBlockHtml, placeholder='關鍵字搜尋'){
+  const id = 'tbl_' + Math.random().toString(36).slice(2,8);
+  return `
+    <div class="mb-2">
+      <input class="form-control form-control-sm" placeholder="${placeholder}"
+        oninput="(function(q){
+          const wrap = document.getElementById('${id}');
+          if(!wrap) return;
+          const trs = wrap.querySelectorAll('tbody tr');
+          const key = q.value.trim().toLowerCase();
+          trs.forEach(tr => {
+            tr.style.display = key==='' || tr.textContent.toLowerCase().includes(key) ? '' : 'none';
+          });
+        })(this)">
+    </div>
+    <div id="${id}">
+      ${tableBlockHtml}
+    </div>
+  `;
+}
+
+/* ===== 登入/註冊 ===== */
+let authMode='login';
+function switchAuth(mode){
+  authMode=mode;
+  document.getElementById('authTitle').textContent=(mode==='login'?'登入':'註冊');
+  document.getElementById('loginForm').classList.toggle('d-none',mode!=='login');
+  document.getElementById('registerForm').classList.toggle('d-none',mode!=='register');
+  document.getElementById('switchAuthBtn').textContent=(mode==='login'?'切換到註冊':'切換到登入');
+}
+function toggleAuth(){ switchAuth(authMode==='login'?'register':'login'); }
+
+function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pwd=document.getElementById('loginPwd').value.trim();
+  if(!email || pwd.length<6){ alert('請輸入正確 Email 與至少 6 碼密碼'); return; }
+  const name=(email==='test@example.com'&&pwd==='123456')?'管理員':email.split('@')[0];
+  setUser({email,name}); updateAuthUI();
+
+  // 保險式關閉 Modal，確保 alert 會跳出
+  const modalEl=document.getElementById('authModal');
+  let modal=bootstrap.Modal.getInstance(modalEl);
+  if(!modal) modal=new bootstrap.Modal(modalEl);
+  modal.hide();
+
+  alert('登入成功');
+}
+function handleRegister(){
+  const email=document.getElementById('regEmail').value.trim();
+  const name=document.getElementById('regName').value.trim();
+  const pwd=document.getElementById('regPwd').value.trim();
+  if(!email || !name || pwd.length<6){ alert('請完整填寫，密碼至少 6 碼'); return; }
+  setUser({email,name}); updateAuthUI();
+  bootstrap.Modal.getInstance(document.getElementById('authModal'))?.hide();
+  alert('註冊成功，已登入');
+}
+function logout(){ clearUser(); updateAuthUI(); alert('已登出，回到試用模式（僅瀏覽）'); }
+
+/* 修改資料/忘記密碼 行為 */
+document.getElementById('profileModal')?.addEventListener('show.bs.modal', () => {
+  const u = getUser() || {};
+  document.getElementById('pfEmail').value = u.email || '';
+  document.getElementById('pfName').value  = u.name  || '';
+});
+function saveProfile(){
+  const u = getUser() || {};
+  const name = document.getElementById('pfName').value.trim();
+  setUser({ ...u, name });
+  updateAuthUI();
+  bootstrap.Modal.getInstance(document.getElementById('profileModal'))?.hide();
+  alert('已更新資料！');
+}
+document.getElementById('resetPwdModal')?.addEventListener('show.bs.modal', () => {
+  const u = getUser() || {};
+  document.getElementById('fpEmail').value = u.email || '';
+});
+function sendReset(){
+  const email = document.getElementById('fpEmail').value.trim();
+  if(!email){ alert('請輸入 Email'); return; }
+  bootstrap.Modal.getInstance(document.getElementById('resetPwdModal'))?.hide();
+  alert(`已寄出重設密碼連結至：${email}（Demo 模擬）`);
+}
+
+/* ===== 初始化 ===== */
+document.addEventListener('DOMContentLoaded', () => {
+  renderCards();
+  updateAuthUI();
+  // 讓密碼欄 Enter 也能登入
+  document.getElementById('loginPwd')?.addEventListener('keydown', e=>{
+    if(e.key==='Enter') handleLogin();
+  });
+});
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
