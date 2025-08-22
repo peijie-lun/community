@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-/* ===== 假資料（原樣保留） ===== */
+/* ===== Demo 資料（原樣保留） ===== */
 const demoResidents = [
   { id: 1, name: "王大明", room: "A101", phone: "0912-345678", car: "ABC-1234", moveIn: "2021-09-01", family: "王太太、王小明" },
   { id: 2, name: "林小美", room: "A102", phone: "0922-222222", car: "XYZ-5678", moveIn: "2023-06-15", family: "林爸爸、林媽媽" },
@@ -41,64 +41,84 @@ const demoParcels = [
   { id: 1, receiver: "王大明", room: "A101", code: "PKG12345", arrival: "2025-08-21 14:00", received: true },
 ];
 
-/* ===== 分類卡片（對應你給的圖片） ===== */
+/** ===== 首頁卡片（標題與條列）＋每張卡的背景圖 =====
+ * 將 bg 傳成任意網址或 public/xxx.jpg
+ */
 const featureCards = [
   {
     key: "resident",
     title: "智慧社區管理",
     items: ["大樓管理費", "社區公告", "訪客管理", "公設預約", "點餐系統", "規約辦法", "資產管理"],
+    bg: "https://images.unsplash.com/photo-1581091215367-59ab6b3d6321?q=80&w=1600&auto=format&fit=crop",
   },
   {
     key: "staff",
     title: "大樓對講機系統",
     items: ["手機遠端開門", "緊急求救", "自動轉接市話"],
+    bg: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1600&auto=format&fit=crop",
   },
   {
     key: "parcel",
     title: "社區包裹管理",
     items: ["郵務管理", "寄放物品", "社區智慧包裹櫃"],
+    bg: "https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?q=80&w=1600&auto=format&fit=crop",
   },
   {
     key: "expenditure",
     title: "電動車充電樁",
-    items: ["EMS能源管理", "充電樁硬體", "充電樁講座"],
+    items: ["EMS能源管理系統", "充電樁硬體", "社區充電樁講座"],
+    bg: "https://images.unsplash.com/photo-1617727553252-65863c156eb0?q=80&w=1600&auto=format&fit=crop",
   },
   {
     key: "announcement",
     title: "智慧社區溝通",
     items: ["個人通知", "行事曆", "瓦斯抄表", "區權大會", "住戶意見反映"],
+    bg: "https://images.unsplash.com/photo-1529336953121-ad5a0d43d0d2?q=80&w=1600&auto=format&fit=crop",
   },
   {
     key: "fee",
     title: "物業管理系統",
-    items: ["物業整合管理平台"],
+    items: ["物業雲整合管理平台"],
+    bg: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1600&auto=format&fit=crop",
   },
   {
     key: "maintenance",
     title: "智慧建築標章",
     items: ["審查取分", "BA系統整合", "標章驗收"],
+    bg: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1600&auto=format&fit=crop",
   },
   {
     key: "activity",
     title: "社區參與",
     items: ["智募集", "快問快答", "社區團購"],
+    bg: "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?q=80&w=1600&auto=format&fit=crop",
   },
 ];
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState(null); // null=總覽卡片，其他=進入分頁
+  const [activeTab, setActiveTab] = useState(null); // null=首頁卡片, 其他=分頁內容
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+  // 顯示 / 隱藏回到頂部
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 300);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div className="container py-5">
-      {/* 頁首說明 */}
+      {/* 頁首 */}
       <div className="text-center mb-5">
-        <h2 className="fw-bold">智慧生活產品與服務</h2>
-        <p className="text-muted mb-0">
-          可用手機、平板或電腦進行雲端智慧化管理，即時掌控社區衣食住行育樂各層面。
+        <h2 className="fw-bold display-6 mb-3">智慧生活產品與服務</h2>
+        <p className="text-muted">
+          智生活打造全台最大的智慧社區管理平台與智慧 AIoT 科技應用，可用手機、平板或電腦設備進行雲端智慧化管理。
+          即時掌控社區全方位衣、食、住、行、育、樂等面向。
         </p>
       </div>
 
-      {/* 總覽：卡片網格 */}
+      {/* 首頁卡片（與你提供的版型一致：半透明綠色、圓角、陰影、背景圖） */}
       {!activeTab && (
         <>
           <div className="row g-4">
@@ -107,50 +127,108 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setActiveTab(card.key)}
-                  className="feature-card w-100 text-start"
+                  className="tile w-100 text-start"
+                  style={{ backgroundImage: `url(${card.bg})` }}
                 >
-                  <div className="feature-card__title h4 fw-bold mb-3">{card.title}</div>
-                  <div className="feature-card__items">
-                    {card.items.map((t, idx) => (
-                      <span key={idx} className="me-2">
-                        {t}
-                        {idx !== card.items.length - 1 && <span className="mx-2">｜</span>}
-                      </span>
-                    ))}
+                  <div className="tile-overlay" />
+                  <div className="position-relative">
+                    <div className="h3 fw-bolder mb-3">{card.title}</div>
+                    <div className="tile-items">
+                      {card.items.map((t, i) => (
+                        <span key={i}>
+                          {t}
+                          {i !== card.items.length - 1 && <span className="mx-2">｜</span>}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </button>
               </div>
             ))}
           </div>
 
-          {/* 自訂樣式 */}
+          {/* 右側浮球：免費諮詢 */}
+          <button
+            className="consult-fab"
+            onClick={() => alert("這裡可連到你的表單 / Line / 電話")}
+            aria-label="免費諮詢"
+          >
+            免費<br />諮詢
+          </button>
+
+          {/* 回到頂部 */}
+          {showTop && (
+            <button className="to-top-fab" onClick={scrollToTop} aria-label="回到頂部">
+              <span className="fs-4">▲</span>
+            </button>
+          )}
+
+          {/* 樣式（僅此頁使用） */}
           <style>{`
-            .feature-card{
-              background: linear-gradient(135deg, rgba(0,163,153,.92), rgba(0,163,153,.88));
-              color:#fff;
+            .tile{
+              position:relative;
+              display:block;
               border:0;
               border-radius: 18px;
-              padding: 24px;
-              min-height: 180px;
+              padding: 28px;
+              min-height: 200px;
+              background-size: cover;
+              background-position: center;
+              overflow:hidden;
+              color:#fff;
+              text-shadow: 0 1px 2px rgba(0,0,0,.25);
               box-shadow: 0 10px 24px rgba(0,0,0,.08);
+              cursor:pointer;
               transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
-              cursor: pointer;
             }
-            .feature-card:hover{
+            .tile:hover{
               transform: translateY(-2px);
-              box-shadow: 0 14px 32px rgba(0,0,0,.12);
-              filter: brightness(1.02);
+              box-shadow: 0 16px 36px rgba(0,0,0,.14);
+              filter: saturate(1.05);
             }
-            .feature-card__title{ letter-spacing: .5px; }
-            .feature-card__items{ line-height: 1.9; opacity:.95; font-weight:500;}
-            @media (max-width: 576px){
-              .feature-card{ min-height: 160px; padding:20px; }
+            .tile-overlay{
+              position:absolute; inset:0;
+              background: rgba(0,163,153,.88); /* 和圖片相同的綠色調 */
             }
+            .tile-items{ line-height:1.9; font-weight:600; opacity:.98; }
+            @media (max-width:576px){
+              .tile{ min-height: 170px; padding: 22px; }
+            }
+
+            .consult-fab{
+              position: fixed;
+              right: 18px;
+              bottom: 120px;
+              width: 64px; height: 64px;
+              border-radius: 999px;
+              border:0;
+              background:#ff8a3d;
+              color:#fff;
+              font-weight: 800;
+              line-height: 1.1;
+              box-shadow: 0 10px 24px rgba(0,0,0,.2);
+              z-index: 1050;
+            }
+            .consult-fab:hover{ filter: brightness(1.05); }
+
+            .to-top-fab{
+              position: fixed;
+              right: 22px;
+              bottom: 40px;
+              width: 56px; height: 56px;
+              border-radius: 999px;
+              border:0;
+              background:#4d4d4d;
+              color:#fff;
+              box-shadow: 0 10px 24px rgba(0,0,0,.2);
+              z-index: 1050;
+            }
+            .to-top-fab:hover{ filter: brightness(1.1); }
           `}</style>
         </>
       )}
 
-      {/* 內容：對應原先每個 tab 的表格 + 返回 */}
+      {/* 內頁內容（沿用你原本每個 tab 的表格）＋ 返回總覽 */}
       {activeTab && (
         <div className="card shadow-sm">
           <div className="card-body">
@@ -176,7 +254,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* 各分頁內容（沿用你原本的表格） */}
             {activeTab === "resident" && (
               <div className="table-responsive">
                 <table className="table table-hover align-middle">
