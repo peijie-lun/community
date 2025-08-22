@@ -2,196 +2,337 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>智生活產品與服務</title>
+  <title>社區管理系統 Demo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap 5 CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      background: #f9f9f9;
-    }
-    .service-header {
-      text-align: center;
-      padding-top: 48px;
-      padding-bottom: 24px;
-    }
-    .service-header h1 {
-      font-weight: bold;
-      font-size: 2.8rem;
-      letter-spacing: 2px;
-    }
-    .service-header p {
-      font-size: 1.18rem;
-      color: #555;
-      margin: 28px auto 0;
-      max-width: 950px;
-    }
-    .service-grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 32px 32px;
-      margin: 40px auto 60px;
-      max-width: 1300px;
-    }
-    .service-card {
-      flex: 1 1 350px;
-      min-width: 320px;
-      max-width: 400px;
-      min-height: 210px;
-      padding: 28px 24px 16px 24px;
-      background: rgba(47, 189, 181, 0.85);
-      border-radius: 18px;
-      box-shadow: 0 2px 10px #e0e0e0;
-      color: #fff;
-      position: relative;
-      overflow: hidden;
-      font-size: 1.18rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      backdrop-filter: blur(1px);
-    }
-    .service-card h3 {
-      font-weight: bold;
-      margin-bottom: 12px;
-      font-size: 2rem;
-      letter-spacing: 1.5px;
-    }
-    .service-card ul {
-      list-style: none;
-      padding-left: 0;
-      margin-bottom: 0;
-    }
-    .service-card li {
-      display: inline-block;
-      margin-right: 18px;
-      font-size: 1.05rem;
-      margin-bottom: 6px;
-      letter-spacing: 1px;
-    }
-    @media(max-width: 1000px){
-      .service-card { min-width: 80vw; max-width: 98vw; }
-      .service-grid { gap: 20px 0; }
-    }
-    @media(max-width: 600px){
-      .service-header h1 { font-size: 2rem;}
-      .service-card { font-size: 1rem; min-width: 94vw; }
-    }
-    /* 右下角浮動按鈕 */
-    .service-float-btn {
-      position: fixed;
-      bottom: 36px;
-      right: 40px;
-      background: #fa8036;
-      color: #fff;
-      font-weight: bold;
-      border-radius: 50px;
-      box-shadow: 0 2px 8px #ccc;
-      padding: 14px 22px;
-      font-size: 1.25rem;
-      z-index: 99;
-      border: none;
-      cursor: pointer;
-    }
-    /* 右下角返回箭頭 */
-    .service-arrow-up {
-      position: fixed;
-      bottom: 36px;
-      right: 140px;
-      background: #6f6f6f;
-      color: #fff;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      z-index: 99;
-      box-shadow: 0 2px 8px #ccc;
-      cursor: pointer;
-    }
-  </style>
 </head>
 <body>
-  <div class="service-header">
-    <h1>智生活產品與服務</h1>
-    <p>
-      智生活打造全台最大的智慧社區管理平台與智慧AIoT科技應用，可使用手機、平板或電腦設備進行雲端智慧化管理。即時掌控社區全方位衣、食、住、行、育、樂、金融、零售、生活環境等各個層面，積極推動社區智慧化，引領台灣智慧社區大趨勢。
-    </p>
-  </div>
-  <div class="service-grid">
-    <div class="service-card">
-      <h3>智慧社區管理</h3>
-      <ul>
-        <li>大樓管理費</li>
-        <li>社區公告</li>
-        <li>訪客管理</li>
-        <li>公設預約</li>
-        <li>點餐系統</li>
-        <li>規約辦法</li>
-        <li>資產管理</li>
-      </ul>
-    </div>
-    <div class="service-card">
-      <h3>大樓對講機系統</h3>
-      <ul>
-        <li>手機遠端開門</li>
-        <li>緊急求救</li>
-        <li>自動轉接市話</li>
-      </ul>
-    </div>
-    <div class="service-card">
-      <h3>社區包裹管理</h3>
-      <ul>
-        <li>郵務管理</li>
-        <li>寄放物品</li>
-        <li>社區智慧包裹櫃</li>
-      </ul>
-    </div>
-    <div class="service-card">
-      <h3>電動車充電樁</h3>
-      <ul>
-        <li>EMS能源管理系統</li>
-        <li>充電樁硬體</li>
-        <li>社區充電樁講座</li>
-      </ul>
-    </div>
-    <div class="service-card">
-      <h3>智慧社區溝通</h3>
-      <ul>
-        <li>個人通知</li>
-        <li>行事曆</li>
-        <li>瓦斯抄表</li>
-        <li>區權大會</li>
-        <li>住戶意見反映</li>
-      </ul>
-    </div>
-    <div class="service-card">
-      <h3>物業管理系統</h3>
-      <ul>
-        <li>物業雲整合管理平台</li>
-      </ul>
-    </div>
-    <div class="service-card">
-      <h3>智慧建築標章</h3>
-      <ul>
-        <li>審查取分</li>
-        <li>BA系統整合</li>
-        <li>標章驗收</li>
-      </ul>
-    </div>
-    <div class="service-card">
-      <h3>社區參與</h3>
-      <ul>
-        <li>智惠社區</li>
-        <li>快問快答</li>
-        <li>社區團購</li>
-      </ul>
+<div class="container my-5">
+  <h2 class="text-center mb-4">社區管理系統 Demo</h2>
+  <ul class="nav nav-pills justify-content-center mb-4 flex-wrap" id="tabs">
+    <!-- JS 生成分頁按鈕 -->
+  </ul>
+  <div class="card shadow-sm">
+    <div class="card-body" id="tab-content">
+      <!-- JS 生成內容 -->
     </div>
   </div>
-  <button class="service-float-btn" onclick="alert('感謝您的諮詢！')">免費諮詢</button>
-  <a href="#" class="service-arrow-up" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8593;</a>
+</div>
+<script>
+const demoResidents = [
+  { id: 1, name: "王大明", room: "A101", phone: "0912-345678", car: "ABC-1234", moveIn: "2021-09-01", family: "王太太、王小明" },
+  { id: 2, name: "林小美", room: "A102", phone: "0922-222222", car: "XYZ-5678", moveIn: "2023-06-15", family: "林爸爸、林媽媽" },
+];
+const demoStaff = [
+  { id: 1, name: "李主委", role: "主委", phone: "0933-111111" },
+  { id: 2, name: "陳清潔", role: "清潔人員", phone: "0933-222222" },
+];
+const demoVisitors = [
+  { id: 1, name: "陳訪客", idCard: "A123456789", room: "A101", in: "2025-08-22 10:00", out: "2025-08-22 11:00", note: "送文件" },
+];
+const demoFees = [
+  { id: 1, room: "A101", amount: 1200, due: "2025-09-10", paid: true, invoice: "INV20250801" },
+  { id: 2, room: "A102", amount: 1200, due: "2025-09-10", paid: false, invoice: "INV20250802" },
+];
+const demoAnnouncements = [
+  { id: 1, title: "停水通知", content: "8/25上午9~12點停水。", time: "2025-08-20", author: "李主委", attachment: "" },
+];
+const demoActivities = [
+  { id: 1, name: "中秋烤肉", time: "2025-09-15 18:00", location: "中庭", signup: "現場報名", organizer: "王大明" },
+];
+const demoRepairs = [
+  { id: 1, room: "A101", item: "水龍頭漏水", desc: "廚房水龍頭持續滴水", time: "2025-08-21", status: "處理中", handler: "陳清潔" },
+];
+const demoMaintenances = [
+  { id: 1, equipment: "電梯", item: "年度保養", time: "2025-08-10", handler: "保養公司", cost: 8000, note: "正常" },
+];
+const demoQA = [
+  { id: 1, room: "A101", q: "垃圾怎麼分類？", a: "請依公告分類", status: "已回覆", time: "2025-08-19" },
+];
+const demoMeetings = [
+  { id: 1, topic: "財務審查", time: "2025-08-18", location: "會議室", participants: "主委、住戶代表", record: "討論收支", resolution: "通過" },
+];
+const demoExpenditures = [
+  { id: 1, item: "清潔用品", amount: 1500, date: "2025-08-12", purpose: "大樓清潔", proof: "收據" },
+];
+const demoParcels = [
+  { id: 1, receiver: "王大明", room: "A101", code: "PKG12345", arrival: "2025-08-21 14:00", received: true },
+];
+
+const tabs = [
+  { key: "resident", label: "住戶資料" },
+  { key: "staff", label: "管理人員" },
+  { key: "visitor", label: "訪客紀錄" },
+  { key: "fee", label: "管理費" },
+  { key: "announcement", label: "社區公告" },
+  { key: "activity", label: "活動時程" },
+  { key: "repair", label: "報修申請" },
+  { key: "maintenance", label: "保養紀錄" },
+  { key: "qa", label: "客服問答" },
+  { key: "meeting", label: "會議紀錄" },
+  { key: "expenditure", label: "財務支出" },
+  { key: "parcel", label: "信件包裹" },
+];
+
+// 分頁切換
+let activeTab = tabs[0].key;
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = tabs.map(tab =>
+    `<li class="nav-item">
+      <button class="nav-link${activeTab===tab.key?' active':''}" onclick="switchTab('${tab.key}')">${tab.label}</button>
+    </li>`
+  ).join('');
+}
+
+function switchTab(key) {
+  activeTab = key;
+  renderTabs();
+  renderTabContent();
+}
+
+function renderTabContent() {
+  let html = "";
+  if(activeTab === "resident") {
+    html += `<h4>住戶資料管理</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-primary"><tr>
+          <th>姓名</th><th>房號</th><th>聯絡方式</th><th>車位</th><th>入住時間</th><th>家庭成員</th>
+        </tr></thead>
+        <tbody>
+          ${demoResidents.map(r=>`
+            <tr>
+              <td>${r.name}</td>
+              <td>${r.room}</td>
+              <td>${r.phone}</td>
+              <td>${r.car}</td>
+              <td>${r.moveIn}</td>
+              <td>${r.family}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "staff") {
+    html += `<h4>管理人員</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-info"><tr><th>姓名</th><th>職位</th><th>聯絡方式</th></tr></thead>
+        <tbody>
+          ${demoStaff.map(s=>`
+            <tr>
+              <td>${s.name}</td>
+              <td>${s.role}</td>
+              <td>${s.phone}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div class="mt-3">
+        <b>角色設定 / 權限（Demo）</b><br>
+        主委：全部功能<br>
+        清潔人員：維修、報修、包裹
+      </div>`;
+  }
+  if(activeTab === "visitor") {
+    html += `<h4>訪客紀錄</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-secondary">
+          <tr><th>姓名</th><th>身分證</th><th>拜訪房號</th><th>進入時間</th><th>離開時間</th><th>備註</th></tr>
+        </thead>
+        <tbody>
+          ${demoVisitors.map(v=>`
+            <tr>
+              <td>${v.name}</td>
+              <td>${v.idCard}</td>
+              <td>${v.room}</td>
+              <td>${v.in}</td>
+              <td>${v.out}</td>
+              <td>${v.note}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "fee") {
+    html += `<h4>管理費</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-warning">
+          <tr><th>房號</th><th>金額</th><th>到期日</th><th>已繳</th><th>發票號碼</th></tr>
+        </thead>
+        <tbody>
+          ${demoFees.map(f=>`
+            <tr>
+              <td>${f.room}</td>
+              <td>${f.amount}</td>
+              <td>${f.due}</td>
+              <td>${f.paid?"是":"否"}</td>
+              <td>${f.invoice}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "announcement") {
+    html += `<h4>社區公告</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-success">
+          <tr><th>標題</th><th>內容</th><th>發布時間</th><th>發布人</th><th>附件</th></tr>
+        </thead>
+        <tbody>
+          ${demoAnnouncements.map(a=>`
+            <tr>
+              <td>${a.title}</td>
+              <td>${a.content}</td>
+              <td>${a.time}</td>
+              <td>${a.author}</td>
+              <td>${a.attachment}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "activity") {
+    html += `<h4>社區活動時程</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-success">
+          <tr><th>活動名稱</th><th>時間</th><th>地點</th><th>報名方式</th><th>負責人</th></tr>
+        </thead>
+        <tbody>
+          ${demoActivities.map(a=>`
+            <tr>
+              <td>${a.name}</td>
+              <td>${a.time}</td>
+              <td>${a.location}</td>
+              <td>${a.signup}</td>
+              <td>${a.organizer}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "repair") {
+    html += `<h4>報修申請</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-danger">
+          <tr><th>房號</th><th>項目</th><th>描述</th><th>申請時間</th><th>狀態</th><th>負責人</th></tr>
+        </thead>
+        <tbody>
+          ${demoRepairs.map(r=>`
+            <tr>
+              <td>${r.room}</td>
+              <td>${r.item}</td>
+              <td>${r.desc}</td>
+              <td>${r.time}</td>
+              <td>${r.status}</td>
+              <td>${r.handler}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "maintenance") {
+    html += `<h4>維修、保養紀錄</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-info">
+          <tr><th>設備名稱</th><th>保養項目</th><th>時間</th><th>負責人</th><th>花費</th><th>紀錄</th></tr>
+        </thead>
+        <tbody>
+          ${demoMaintenances.map(m=>`
+            <tr>
+              <td>${m.equipment}</td>
+              <td>${m.item}</td>
+              <td>${m.time}</td>
+              <td>${m.handler}</td>
+              <td>${m.cost}</td>
+              <td>${m.note}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "qa") {
+    html += `<h4>客服問答</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-info">
+          <tr><th>房號</th><th>問題</th><th>回覆</th><th>狀態</th><th>時間</th></tr>
+        </thead>
+        <tbody>
+          ${demoQA.map(q=>`
+            <tr>
+              <td>${q.room}</td>
+              <td>${q.q}</td>
+              <td>${q.a}</td>
+              <td>${q.status}</td>
+              <td>${q.time}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "meeting") {
+    html += `<h4>會議紀錄</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-info">
+          <tr><th>主題</th><th>時間</th><th>地點</th><th>參與人員</th><th>紀錄</th><th>決議事項</th></tr>
+        </thead>
+        <tbody>
+          ${demoMeetings.map(m=>`
+            <tr>
+              <td>${m.topic}</td>
+              <td>${m.time}</td>
+              <td>${m.location}</td>
+              <td>${m.participants}</td>
+              <td>${m.record}</td>
+              <td>${m.resolution}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "expenditure") {
+    html += `<h4>財務支出</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-warning">
+          <tr><th>支出項目</th><th>金額</th><th>日期</th><th>用途</th><th>憑證</th></tr>
+        </thead>
+        <tbody>
+          ${demoExpenditures.map(e=>`
+            <tr>
+              <td>${e.item}</td>
+              <td>${e.amount}</td>
+              <td>${e.date}</td>
+              <td>${e.purpose}</td>
+              <td>${e.proof}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  if(activeTab === "parcel") {
+    html += `<h4>信件包裹管理</h4>
+      <table class="table table-bordered table-sm mt-3">
+        <thead class="table-secondary">
+          <tr><th>收件人</th><th>房號</th><th>包裹編號</th><th>到達時間</th><th>領取狀態</th></tr>
+        </thead>
+        <tbody>
+          ${demoParcels.map(p=>`
+            <tr>
+              <td>${p.receiver}</td>
+              <td>${p.room}</td>
+              <td>${p.code}</td>
+              <td>${p.arrival}</td>
+              <td>${p.received?"已領取":"未領取"}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+  document.getElementById('tab-content').innerHTML = html;
+}
+
+// 初始化渲染
+renderTabs();
+renderTabContent();
+</script>
 </body>
 </html>
