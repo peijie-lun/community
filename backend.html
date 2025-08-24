@@ -55,7 +55,8 @@
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">📢 公告與活動類</a>
           <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('announcement')">社區公告</a></li>
+            <!-- === 改動：加入 id 以更新未讀徽章 -->
+            <li><a class="dropdown-item" id="navAnnLink" href="#!" onclick="gotoTab('announcement')">社區公告</a></li>
             <li><a class="dropdown-item" href="#!" onclick="gotoTab('activity')">社區活動時程</a></li>
             <li><a class="dropdown-item" href="#!" onclick="gotoTab('meeting')">會議紀錄</a></li>
           </ul>
@@ -78,19 +79,23 @@
         </li>
       </ul>
 
-      <!-- 右側：切換到住戶 + 認證 -->
-      <div class="ms-auto d-flex align-items-center gap-3">
-        <a class="text-decoration-none text-secondary" href="index.html">社區系統後台</a>
+      <!-- 右側：返回前台 + 認證 -->
+      <div class="ms-auto d-flex align-items-center gap-2">
+        <!-- === 改動：顯示返回前台 -->
+        <a class="text-decoration-none text-secondary" href="index.html">返回前台</a>
+
+        <!-- === 改動：緊急通報只給 管委會/管理員 -->
+        <button id="sosNavBtn" class="btn btn-sm btn-danger d-none" onclick="openSOS()">⚠️ 緊急通報</button>
 
         <div id="authCta" class="d-flex gap-2">
           <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuth('login')">登入</button>
           <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuth('register')">註冊</button>
         </div>
 
-        <!-- 使用者下拉：已移除「回到首頁」，新增 修改資料 / 忘記密碼 -->
+        <!-- 使用者下拉：新增 修改資料 / 忘記密碼 -->
         <div id="authUser" class="dropdown d-none">
           <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-            <span id="authName">住戶</span>
+            <span id="authName">使用者</span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><h6 class="dropdown-header" id="authMail">user@example.com</h6></li>
@@ -139,6 +144,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <!-- 登入 -->
         <div id="loginForm">
           <div class="mb-3">
             <label class="form-label">Email</label>
@@ -148,9 +154,26 @@
             <label class="form-label">密碼</label>
             <input id="loginPwd" type="password" class="form-control" placeholder="至少 6 碼">
           </div>
-          <button id="loginBtn" class="btn btn-primary w-100" onclick="handleLogin()">登入</button>
+          <!-- === 改動：加入角色/廠商欄位（與前台一致） -->
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">角色（Demo）</label>
+              <select id="loginRole" class="form-select">
+                <option value="resident">住戶</option>
+                <option value="committee">管委會</option>
+                <option value="vendor">廠商</option>
+                <option value="admin">管理員</option>
+              </select>
+            </div>
+            <div class="col-6 d-none" id="loginVendorWrap">
+              <label class="form-label">公司名稱</label>
+              <input id="loginVendor" class="form-control" placeholder="例：水電小王子">
+            </div>
+          </div>
+          <button id="loginBtn" class="btn btn-primary w-100 mt-3" onclick="handleLogin()">登入</button>
           <div class="mt-2 small text-muted">測試帳密：test@example.com / 123456</div>
         </div>
+        <!-- 註冊 -->
         <div id="registerForm" class="d-none">
           <div class="mb-3">
             <label class="form-label">Email</label>
@@ -164,7 +187,22 @@
             <label class="form-label">密碼</label>
             <input id="regPwd" type="password" class="form-control" placeholder="至少 6 碼">
           </div>
-          <button class="btn btn-success w-100" onclick="handleRegister()">建立帳號</button>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">角色（Demo）</label>
+              <select id="regRole" class="form-select">
+                <option value="resident">住戶</option>
+                <option value="committee">管委會</option>
+                <option value="vendor">廠商</option>
+                <option value="admin">管理員</option>
+              </select>
+            </div>
+            <div class="col-6 d-none" id="regVendorWrap">
+              <label class="form-label">公司名稱</label>
+              <input id="regVendor" class="form-control" placeholder="例：水電小王子">
+            </div>
+          </div>
+          <button class="btn btn-success w-100 mt-3" onclick="handleRegister()">建立帳號</button>
         </div>
       </div>
       <div class="modal-footer">
@@ -224,7 +262,7 @@
 </div>
 
 <script>
-/* ===== 假資料（同前） ===== */
+/* ===== 假資料（與前台一致的結構） ===== */
 const demoResidents = [
   { id: 1, name: "王大明", room: "A101", phone: "0912-345678", car: "ABC-1234", moveIn: "2021-09-01", family: "王太太、王小明" },
   { id: 2, name: "林小美", room: "A102", phone: "0922-222222", car: "XYZ-5678", moveIn: "2023-06-15", family: "林爸爸、林媽媽" },
@@ -237,7 +275,7 @@ const demoVisitors = [
   { id: 1, name: "陳訪客", idCard: "A123456789", room: "A101", in: "2025-08-22 10:00", out: "2025-08-22 11:00", note: "送文件" },
 ];
 const demoFees = [
-  { id: 1, room: "A101", amount: 1200, due: "2025-09-10", paid: true, invoice: "INV20250801" },
+  { id: 1, room: "A101", amount: 1200, due: "2025-09-10", paid: true,  invoice: "INV20250801" },
   { id: 2, room: "A102", amount: 1200, due: "2025-09-10", paid: false, invoice: "INV20250802" },
 ];
 const demoAnnouncements = [
@@ -245,9 +283,6 @@ const demoAnnouncements = [
 ];
 const demoActivities = [
   { id: 1, name: "中秋烤肉", time: "2025-09-15 18:00", location: "中庭", signup: "現場報名", organizer: "王大明" },
-];
-const demoRepairs = [
-  { id: 1, room: "A101", item: "水龍頭漏水", desc: "廚房水龍頭持續滴水", time: "2025-08-21", status: "處理中", handler: "陳清潔" },
 ];
 const demoMaintenances = [
   { id: 1, equipment: "電梯", item: "年度保養", time: "2025-08-10", handler: "保養公司", cost: 8000, note: "正常" },
@@ -263,6 +298,12 @@ const demoExpenditures = [
 ];
 const demoParcels = [
   { id: 1, receiver: "王大明", room: "A101", code: "PKG12345", arrival: "2025-08-21 14:00", received: true },
+];
+
+/* === 改動：報修資料改為與前台一致（含 assigneeVendor/progress 等） */
+const demoRepairs = [
+  { id: 'R_demo1', room: "A101", item: "水龍頭漏水", desc: "廚房水龍頭持續滴水", time: "2025-08-21 10:20",
+    status: "ASSIGNED", createdBy:"a101@demo", assigneeVendor:"水電小王子", photos:[], progress:[{time:"2025/08/22 09:10", note:"已到場檢測"}] },
 ];
 
 /* ===== tabs / cards：12 項 ===== */
@@ -296,15 +337,104 @@ const cards = [
   ["parcel","信件包裹","收發件 ｜ 取件碼","https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?q=80&w=1600&auto=format&fit=crop"],
 ];
 
-/* ===== 認證（localStorage 模擬） ===== */
+/* ===== 認證與本地儲存（與前台一致） ===== */
 const AUTH_KEY="demo_auth_user";
+const LSK = { repairs:"kms_repairs", announcements:"kms_ann", fees:"kms_fees" }; // === 改動：統一 key
 let activeTab=null;
 
 const isLoggedIn=()=>!!localStorage.getItem(AUTH_KEY);
 const getUser =()=>JSON.parse(localStorage.getItem(AUTH_KEY)||"null");
 const setUser =u=>localStorage.setItem(AUTH_KEY,JSON.stringify(u));
 const clearUser=()=>localStorage.removeItem(AUTH_KEY);
+const getRole =()=> (getUser()?.role)||"guest"; // === 改動：角色
 
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const load=(k,def)=>JSON.parse(localStorage.getItem(k)||JSON.stringify(def));
+
+/* 首次寫入假資料 */
+if(!localStorage.getItem(LSK.repairs)) save(LSK.repairs, demoRepairs);
+if(!localStorage.getItem(LSK.announcements)) save(LSK.announcements, demoAnnouncements);
+if(!localStorage.getItem(LSK.fees)) save(LSK.fees, demoFees);
+
+/* === 改動：公告未讀（依使用者 email） =================== */
+function annReadKey(){ const e=getUser()?.email; return e?`ann_read_${e}`:null; }
+function getAnnReadSet(){ const k=annReadKey(); if(!k) return new Set(); return new Set(JSON.parse(localStorage.getItem(k)||'[]').map(String)); }
+function saveAnnReadSet(set){ const k=annReadKey(); if(!k) return; localStorage.setItem(k, JSON.stringify([...set])); }
+function getUnreadCount(){
+  if(!isLoggedIn()) return 0;
+  const anns=load(LSK.announcements,[]), read=getAnnReadSet();
+  return anns.filter(a=>!read.has(String(a.id))).length;
+}
+function markAnnRead(id){ const s=getAnnReadSet(); s.add(String(id)); saveAnnReadSet(s); updateUnreadUI(); if(activeTab==='announcement') renderTabContent(); }
+function markAllAnnRead(){ const anns=load(LSK.announcements,[]); saveAnnReadSet(new Set(anns.map(a=>String(a.id)))); updateUnreadUI(); if(activeTab==='announcement') renderTabContent(); }
+function updateUnreadUI(){
+  const nav=document.getElementById('navAnnLink'); const c=getUnreadCount();
+  if(nav){ nav.innerHTML=`社區公告 ${c>0?`<span class="badge bg-danger ms-2">未讀 ${c}</span>`:''}`; }
+  const isHome=!document.getElementById('feature-grid').classList.contains('d-none');
+  if(isHome) renderCards(); // 讓首頁徽章刷新
+}
+/* ======================================================= */
+
+/* ===== 首頁卡片（加公告未讀徽章） ===== */
+function renderCards(){
+  const grid=document.getElementById('feature-grid');
+  const unread=getUnreadCount();
+  grid.innerHTML=cards.map(([key,title,items,bg])=>{
+    const badge=(key==='announcement'&&unread>0)?`<span class="badge bg-danger position-absolute top-0 end-0 m-2">未讀 ${unread}</span>`:'';
+    return `
+      <div class="col-12 col-md-6 col-lg-4">
+        <button class="tile w-100 text-start position-relative" style="background-image:url('${bg}')" onclick="gotoTab('${key}')">
+          <div class="tile-overlay"></div>
+          ${badge}
+          <div class="position-relative">
+            <div class="h5 fw-bold mb-2 text-white">${title}</div>
+            <div class="tile-items">${items}</div>
+          </div>
+        </button>
+      </div>`;
+  }).join('');
+}
+
+/* ===== 首頁 / 分頁切換（未登入攔截） ===== */
+let pendingTab=null; // === 改動：登入後返回原頁
+function ensureAuth(redirectTab=null){
+  if(!isLoggedIn()){ pendingTab=redirectTab; switchAuth('login'); new bootstrap.Modal(document.getElementById('authModal')).show(); return false; }
+  return true;
+}
+function backHome(){
+  document.getElementById('feature-grid').classList.remove('d-none');
+  document.getElementById('tab-content').innerHTML="";
+  document.getElementById('actionBar').classList.add('d-none');
+  activeTab=null; renderCards(); updateUnreadUI();
+}
+function gotoTab(key){
+  if(!ensureAuth(key)) return;
+  document.getElementById('feature-grid').classList.add('d-none');
+  document.getElementById('actionBar').classList.remove('d-none');
+  activeTab=key; renderTabContent();
+}
+
+/* ===== 功能鎖定（未登入） ===== */
+function lockActions(){
+  document.querySelectorAll('.requires-auth').forEach(btn=>{
+    btn.disabled=false;
+    btn.onclick=(e)=>{ e.preventDefault(); if(!ensureAuth()) return; };
+  });
+}
+function unlockActions(){ document.querySelectorAll('.requires-auth').forEach(btn=>{ btn.onclick=null; }); }
+
+/* ===== 僅允許 管委會/管理員 停留在後台 ===== */
+// === 改動：不符合角色直接導回前台
+function guardBackend(){
+  if(!isLoggedIn()) return; // 未登入由 ensureAuth 處理
+  const role=getRole();
+  if(!(role==='committee'||role==='admin')){
+    alert('僅管委會/管理員可進入後台，已帶您回前台');
+    window.location.href='index.html';
+  }
+}
+
+/* ===== UI：依角色顯示 SOS、更新帳號資訊、徽章 ===== */
 function updateAuthUI(){
   const cta=document.getElementById('authCta');
   const user=document.getElementById('authUser');
@@ -318,74 +448,40 @@ function updateAuthUI(){
     cta.classList.remove('d-none'); user.classList.add('d-none');
     lockActions();
   }
-}
-
-/* ===== 首頁卡片 ===== */
-function renderCards(){
-  const grid=document.getElementById('feature-grid');
-  grid.innerHTML=cards.map(([key,title,items,bg])=>`
-    <div class="col-12 col-md-6 col-lg-4">
-      <button class="tile w-100 text-start" style="background-image:url('${bg}')" onclick="gotoTab('${key}')">
-        <div class="tile-overlay"></div>
-        <div class="position-relative">
-          <div class="h5 fw-bold mb-2 text-white">${title}</div>
-          <div class="tile-items">${items}</div>
-        </div>
-      </button>
-    </div>
-  `).join('');
-}
-
-/* ===== 首頁 / 分頁切換 ===== */
-function backHome(){
-  document.getElementById('feature-grid').classList.remove('d-none');
-  document.getElementById('tab-content').innerHTML="";
-  document.getElementById('actionBar').classList.add('d-none');  // 首頁隱藏功能列
-  activeTab=null;
-  renderCards();
-}
-
-function gotoTab(key){
-  activeTab=key;
-  document.getElementById('feature-grid').classList.add('d-none');
-  document.getElementById('actionBar').classList.remove('d-none'); // 進入分頁顯示功能列
-  renderTabContent();
-}
-
-/* ===== 功能鎖定（未登入） ===== */
-function lockActions(){
-  document.querySelectorAll('.requires-auth').forEach(btn=>{
-    btn.disabled=false; // 改為提示登入
-    btn.onclick=(e)=>{
-      e.preventDefault();
-      switchAuth('login');
-      const modal=new bootstrap.Modal(document.getElementById('authModal'));
-      modal.show();
-    };
-  });
-}
-function unlockActions(){
-  document.querySelectorAll('.requires-auth').forEach(btn=>{ btn.onclick=null; });
+  // === 改動：SOS 僅 committee/admin
+  const showSOS=(getRole()==='committee'||getRole()==='admin');
+  document.getElementById('sosNavBtn')?.classList.toggle('d-none',!showSOS);
+  updateUnreadUI();
 }
 
 /* ===== 分頁內容 + 通用搜尋 ===== */
-function renderTabContent(){
-  const PLACEHOLDER_MAP = {
-    resident:     '搜尋：姓名 / 房號 / 電話',
-    staff:        '搜尋：姓名 / 職位',
-    visitor:      '搜尋：姓名 / 房號 / 時間',
-    fee:          '搜尋：房號 / 發票',
-    announcement: '搜尋：標題 / 內容 / 發布人',
-    activity:     '搜尋：活動 / 地點',
-    repair:       '搜尋：房號 / 項目 / 狀態',
-    maintenance:  '搜尋：設備 / 項目 / 負責人',
-    qa:           '搜尋：問題 / 回覆 / 房號',
-    meeting:      '搜尋：主題 / 地點 / 參與人',
-    expenditure:  '搜尋：項目 / 用途 / 金額',
-    parcel:       '搜尋：收件人 / 包裹編號'
-  };
-  let html = "";
+function withSearch(tableBlockHtml, placeholder='關鍵字搜尋'){
+  const id='tbl_'+Math.random().toString(36).slice(2,8);
+  return `
+    <div class="mb-2">
+      <input class="form-control form-control-sm" placeholder="${placeholder}"
+        oninput="(function(q){
+          const wrap=document.getElementById('${id}'); if(!wrap) return;
+          const trs=wrap.querySelectorAll('tbody tr');
+          const key=q.value.trim().toLowerCase();
+          trs.forEach(tr=>{ tr.style.display=(key===''||tr.textContent.toLowerCase().includes(key))?'':'none'; });
+        })(this)">
+    </div>
+    <div id="${id}">
+      ${tableBlockHtml}
+    </div>`;
+}
 
+function renderTabContent(){
+  const PLACE = {
+    resident:'搜尋：姓名 / 房號 / 電話', staff:'搜尋：姓名 / 職位', visitor:'搜尋：姓名 / 房號 / 時間',
+    fee:'搜尋：房號 / 發票', announcement:'搜尋：標題 / 內容 / 發布人', activity:'搜尋：活動 / 地點',
+    repair:'搜尋：房號 / 項目 / 狀態', maintenance:'搜尋：設備 / 項目 / 負責人', qa:'搜尋：問題 / 回覆 / 房號',
+    meeting:'搜尋：主題 / 地點 / 參與人', expenditure:'搜尋：項目 / 用途 / 金額', parcel:'搜尋：收件人 / 包裹編號'
+  };
+  let html="";
+
+  // 後台預設：可看全部住戶（已由 guardBackend 確保角色）
   if(activeTab==="resident"){
     const tableHtml = `
       <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
@@ -394,7 +490,7 @@ function renderTabContent(){
         </tr></thead><tbody>
           ${demoResidents.map(r=>`<tr><td>${r.name}</td><td>${r.room}</td><td>${r.phone}</td><td>${r.car}</td><td>${r.moveIn}</td><td>${r.family}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>住戶資料</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>住戶資料</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   if(activeTab==="staff"){
@@ -403,7 +499,7 @@ function renderTabContent(){
         <thead class="table-info"><tr><th>姓名</th><th>職位</th><th>聯絡方式</th></tr></thead><tbody>
           ${demoStaff.map(s=>`<tr><td>${s.name}</td><td>${s.role}</td><td>${s.phone}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>主委、清潔人員資料</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>主委、清潔人員資料</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   if(activeTab==="visitor"){
@@ -414,25 +510,40 @@ function renderTabContent(){
         </tr></thead><tbody>
           ${demoVisitors.map(v=>`<tr><td>${v.name}</td><td>${v.idCard}</td><td>${v.room}</td><td>${v.in}</td><td>${v.out}</td><td>${v.note}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>訪客紀錄</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>訪客紀錄</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   if(activeTab==="fee"){
+    const fees=load(LSK.fees,demoFees);
     const tableHtml = `
       <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
         <thead class="table-warning"><tr><th>房號</th><th>金額</th><th>到期日</th><th>已繳</th><th>發票號碼</th></tr></thead><tbody>
-          ${demoFees.map(f=>`<tr><td>${f.room}</td><td>${f.amount}</td><td>${f.due}</td><td>${f.paid?'是':'否'}</td><td>${f.invoice}</td></tr>`).join('')}
+          ${fees.map(f=>`<tr><td>${f.room}</td><td>${f.amount}</td><td>${f.due}</td><td>${f.paid?'是':'否'}</td><td>${f.invoice}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>管理費</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>管理費</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
+  // === 改動：公告（未讀/已讀、全部已讀）
   if(activeTab==="announcement"){
+    const anns=load(LSK.announcements,[]);
+    const readSet=getAnnReadSet();
     const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-success"><tr><th>標題</th><th>內容</th><th>發布時間</th><th>發布人</th><th>附件</th></tr></thead><tbody>
-          ${demoAnnouncements.map(a=>`<tr><td>${a.title}</td><td>${a.content}</td><td>${a.time}</td><td>${a.author}</td><td>${a.attachment}</td></tr>`).join('')}
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="small text-muted">未讀：${getUnreadCount()}</div>
+        <div><button class="btn btn-sm btn-outline-secondary" onclick="markAllAnnRead()">全部標記已讀</button></div>
+      </div>
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3 align-middle">
+        <thead class="table-success"><tr><th style="width:80px">狀態</th><th>標題</th><th>內容</th><th>發布時間</th><th>發布人</th><th style="width:100px">附件</th></tr></thead>
+        <tbody>
+          ${anns.map(a=>{
+            const unread=!readSet.has(String(a.id));
+            const status= unread?`<span class="badge bg-danger">未讀</span>`:`<span class="badge bg-secondary">已讀</span>`;
+            return `<tr onclick="markAnnRead('${a.id}')">
+              <td>${status}</td><td>${a.title}</td><td>${a.content}</td><td>${a.time}</td><td>${a.author}</td><td>${a.attachment||''}</td>
+            </tr>`;
+          }).join('')}
         </tbody></table></div>`;
-    html = `<h4>社區公告</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>社區公告</h4><div class="text-muted small">（點擊任一列可標記為已讀）</div>` + withSearch(tableHtml, '搜尋：標題 / 內容 / 發布人');
   }
 
   if(activeTab==="activity"){
@@ -441,16 +552,36 @@ function renderTabContent(){
         <thead class="table-success"><tr><th>活動名稱</th><th>時間</th><th>地點</th><th>報名方式</th><th>負責人</th></tr></thead><tbody>
           ${demoActivities.map(a=>`<tr><td>${a.name}</td><td>${a.time}</td><td>${a.location}</td><td>${a.signup}</td><td>${a.organizer}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>社區活動時程</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>社區活動時程</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
+  // === 改動：報修（指派/查看進度/完工）
   if(activeTab==="repair"){
+    const role=getRole(); // 後台理應是 committee/admin
+    const list=load(LSK.repairs,[]);
     const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-danger"><tr><th>房號</th><th>項目</th><th>描述</th><th>申請時間</th><th>狀態</th><th>負責人</th></tr></thead><tbody>
-          ${demoRepairs.map(r=>`<tr><td>${r.room}</td><td>${r.item}</td><td>${r.desc}</td><td>${r.time}</td><td>${r.status}</td><td>${r.handler}</td></tr>`).join('')}
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="small text-muted">角色：${role}</div>
+        <div class="small text-muted">廠商回報進度請在前台以「廠商」帳號操作</div>
+      </div>
+      <div class="table-responsive"><table class="table table-bordered table-sm mt-3 align-middle">
+        <thead class="table-danger"><tr>
+          <th>房號</th><th>項目</th><th>描述</th><th>申請時間</th><th>狀態</th><th>指派廠商</th><th style="width:220px">動作</th>
+        </tr></thead><tbody>
+          ${list.map(r=>{
+            const acts=[];
+            acts.push(`<button class="btn btn-sm btn-secondary me-1" onclick="viewProgress('${r.id}')">查看進度</button>`);
+            acts.push(`<button class="btn btn-sm btn-warning me-1" onclick="assignRepair('${r.id}')">指派</button>`);
+            if(r.status==='IN_PROGRESS' || r.status==='ASSIGNED'){
+              acts.push(`<button class="btn btn-sm btn-success" onclick="closeRepair('${r.id}')">完工</button>`);
+            }
+            return `<tr>
+              <td>${r.room}</td><td>${r.item}</td><td>${r.desc}</td><td>${r.time}</td>
+              <td>${r.status}</td><td>${r.assigneeVendor||''}</td><td>${acts.join(' ')}</td>
+            </tr>`;
+          }).join('')}
         </tbody></table></div>`;
-    html = `<h4>報修申請</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>報修申請</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   if(activeTab==="maintenance"){
@@ -459,7 +590,7 @@ function renderTabContent(){
         <thead class="table-info"><tr><th>設備名稱</th><th>保養項目</th><th>時間</th><th>負責人</th><th>花費</th><th>紀錄</th></tr></thead><tbody>
           ${demoMaintenances.map(m=>`<tr><td>${m.equipment}</td><td>${m.item}</td><td>${m.time}</td><td>${m.handler}</td><td>${m.cost}</td><td>${m.note}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>維修、保養紀錄</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>維修、保養紀錄</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   if(activeTab==="qa"){
@@ -468,7 +599,7 @@ function renderTabContent(){
         <thead class="table-info"><tr><th>房號</th><th>問題</th><th>回覆</th><th>狀態</th><th>時間</th></tr></thead><tbody>
           ${demoQA.map(q=>`<tr><td>${q.room}</td><td>${q.q}</td><td>${q.a}</td><td>${q.status}</td><td>${q.time}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>客服問答</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>客服問答</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   if(activeTab==="meeting"){
@@ -477,7 +608,7 @@ function renderTabContent(){
         <thead class="table-info"><tr><th>主題</th><th>時間</th><th>地點</th><th>參與人員</th><th>紀錄</th><th>決議事項</th></tr></thead><tbody>
           ${demoMeetings.map(m=>`<tr><td>${m.topic}</td><td>${m.time}</td><td>${m.location}</td><td>${m.participants}</td><td>${m.record}</td><td>${m.resolution}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>會議紀錄</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>會議紀錄</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   if(activeTab==="expenditure"){
@@ -486,7 +617,7 @@ function renderTabContent(){
         <thead class="table-warning"><tr><th>支出項目</th><th>金額</th><th>日期</th><th>用途</th><th>憑證</th></tr></thead><tbody>
           ${demoExpenditures.map(e=>`<tr><td>${e.item}</td><td>${e.amount}</td><td>${e.date}</td><td>${e.purpose}</td><td>${e.proof}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>財務支出</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>財務支出</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   if(activeTab==="parcel"){
@@ -495,34 +626,39 @@ function renderTabContent(){
         <thead class="table-secondary"><tr><th>收件人</th><th>房號</th><th>包裹編號</th><th>到達時間</th><th>領取狀態</th></tr></thead><tbody>
           ${demoParcels.map(p=>`<tr><td>${p.receiver}</td><td>${p.room}</td><td>${p.code}</td><td>${p.arrival}</td><td>${p.received?'已領取':'未領取'}</td></tr>`).join('')}
         </tbody></table></div>`;
-    html = `<h4>信件包裹</h4>` + withSearch(tableHtml, PLACEHOLDER_MAP[activeTab]);
+    html = `<h4>信件包裹</h4>` + withSearch(tableHtml, PLACE[activeTab]);
   }
 
   document.getElementById('tab-content').innerHTML = html;
 }
 
-function withSearch(tableBlockHtml, placeholder='關鍵字搜尋'){
-  const id = 'tbl_' + Math.random().toString(36).slice(2,8);
-  return `
-    <div class="mb-2">
-      <input class="form-control form-control-sm" placeholder="${placeholder}"
-        oninput="(function(q){
-          const wrap = document.getElementById('${id}');
-          if(!wrap) return;
-          const trs = wrap.querySelectorAll('tbody tr');
-          const key = q.value.trim().toLowerCase();
-          trs.forEach(tr => {
-            tr.style.display = key==='' || tr.textContent.toLowerCase().includes(key) ? '' : 'none';
-          });
-        })(this)">
-    </div>
-    <div id="${id}">
-      ${tableBlockHtml}
-    </div>
-  `;
+/* ===== 報修流程（後台：指派/查看進度/完工） ===== */
+// === 改動：與前台相同的存取 key
+function assignRepair(id){
+  const vendor=prompt('指派廠商名稱？（需與廠商登入之公司名稱一致）'); if(!vendor) return;
+  const list=load(LSK.repairs,[]); const r=list.find(x=>x.id===id); if(!r) return;
+  r.assigneeVendor=vendor; r.status = (r.status==='DONE')?'DONE':'ASSIGNED';
+  save(LSK.repairs,list); alert('已指派（Demo）'); renderTabContent();
+}
+function viewProgress(id){
+  const list=load(LSK.repairs,[]); const r=list.find(x=>x.id===id); if(!r) return;
+  const lines = (r.progress||[]).map(p=>`• ${p.time}　${p.note}`).join('\n') || '(尚無進度)';
+  alert(`報修編號：${id}\n狀態：${r.status}\n指派廠商：${r.assigneeVendor||'-'}\n\n進度：\n${lines}`);
+}
+function closeRepair(id){
+  const list=load(LSK.repairs,[]); const r=list.find(x=>x.id===id); if(!r) return;
+  if(confirm('確定標記為完工？')){
+    r.status='DONE'; save(LSK.repairs,list); alert('已完工（Demo）'); renderTabContent();
+  }
 }
 
-/* ===== 登入/註冊 ===== */
+/* ===== 緊急通報（僅 committee/admin） ===== */
+function openSOS(){
+  if(!(getRole()==='committee'||getRole()==='admin')){ alert('僅管委會與管理員可使用'); return; }
+  alert('已送出緊急通報（Demo）');
+}
+
+/* ===== 登入/註冊（含角色、導向邏輯） ===== */
 let authMode='login';
 function switchAuth(mode){
   authMode=mode;
@@ -536,26 +672,39 @@ function toggleAuth(){ switchAuth(authMode==='login'?'register':'login'); }
 function handleLogin(){
   const email=document.getElementById('loginEmail').value.trim();
   const pwd=document.getElementById('loginPwd').value.trim();
+  const role=document.getElementById('loginRole')?.value||'resident';
+  const vendorName=document.getElementById('loginVendor')?.value.trim();
   if(!email || pwd.length<6){ alert('請輸入正確 Email 與至少 6 碼密碼'); return; }
   const name=(email==='test@example.com'&&pwd==='123456')?'管理員':email.split('@')[0];
-  setUser({email,name}); updateAuthUI();
+  setUser({email,name,role, vendorName: role==='vendor' ? (vendorName||name) : undefined});
 
-  // 保險式關閉 Modal，確保 alert 會跳出
-  const modalEl=document.getElementById('authModal');
-  let modal=bootstrap.Modal.getInstance(modalEl);
-  if(!modal) modal=new bootstrap.Modal(modalEl);
-  modal.hide();
+  // === 改動：後台只允許 committee/admin，其他導回前台
+  if(!(role==='committee'||role==='admin')){
+    alert('您非管委會/管理員，已為您導回前台');
+    window.location.href='index.html'; return;
+  }
 
-  alert('登入成功');
+  updateAuthUI();
+  const modalEl=document.getElementById('authModal'); let m=bootstrap.Modal.getInstance(modalEl); if(!m) m=new bootstrap.Modal(modalEl); m.hide();
+  if(pendingTab){ const t=pendingTab; pendingTab=null; gotoTab(t); } else alert('登入成功');
 }
 function handleRegister(){
   const email=document.getElementById('regEmail').value.trim();
   const name=document.getElementById('regName').value.trim();
   const pwd=document.getElementById('regPwd').value.trim();
+  const role=document.getElementById('regRole')?.value||'resident';
+  const vendorName=document.getElementById('regVendor')?.value.trim();
   if(!email || !name || pwd.length<6){ alert('請完整填寫，密碼至少 6 碼'); return; }
-  setUser({email,name}); updateAuthUI();
+  setUser({email,name,role, vendorName: role==='vendor' ? (vendorName||name) : undefined});
+
+  if(!(role==='committee'||role==='admin')){
+    alert('您非管委會/管理員，已為您導回前台');
+    window.location.href='index.html'; return;
+  }
+
+  updateAuthUI();
   bootstrap.Modal.getInstance(document.getElementById('authModal'))?.hide();
-  alert('註冊成功，已登入');
+  if(pendingTab){ const t=pendingTab; pendingTab=null; gotoTab(t); } else alert('註冊成功，已登入');
 }
 function logout(){ clearUser(); updateAuthUI(); alert('已登出，回到試用模式（僅瀏覽）'); }
 
@@ -588,10 +737,21 @@ function sendReset(){
 document.addEventListener('DOMContentLoaded', () => {
   renderCards();
   updateAuthUI();
+
+  // === 改動：若已登入但不是 committee/admin，直接導回前台
+  guardBackend();
+
   // 讓密碼欄 Enter 也能登入
-  document.getElementById('loginPwd')?.addEventListener('keydown', e=>{
-    if(e.key==='Enter') handleLogin();
-  });
+  document.getElementById('loginPwd')?.addEventListener('keydown', e=>{ if(e.key==='Enter') handleLogin(); });
+
+  // === 改動：角色=vendor 時顯示公司名稱欄（登入/註冊）
+  const toggleVendor = (selId, wrapId)=>{
+    const sel=document.getElementById(selId), wrap=document.getElementById(wrapId);
+    const run=()=>wrap.classList.toggle('d-none', sel.value!=='vendor');
+    sel?.addEventListener('change', run); run();
+  };
+  toggleVendor('loginRole','loginVendorWrap');
+  toggleVendor('regRole','regVendorWrap');
 });
 </script>
 
