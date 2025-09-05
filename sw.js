@@ -1,5 +1,5 @@
-// sw.js (stable)
-const CACHE_VER = 'v12';
+// sw.js
+const CACHE_VER = 'v13';
 const CACHE_NAME = `kms-${CACHE_VER}`;
 const CORE_ASSETS = [
   './',
@@ -9,8 +9,8 @@ const CORE_ASSETS = [
   './backend.html',
   './index.js',
   './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
       try {
         const res = await fetch(url, { cache: 'no-store' });
         if (res && res.ok) await cache.put(url, res.clone());
-      } catch (_) { /* 忽略缺檔，避免整體安裝失敗 */ }
+      } catch (_) {}
     }
     await self.skipWaiting();
   })());
@@ -39,7 +39,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
-  // HTML 導覽：線上優先，離線退回快取或 index.html
+  // 導覽請求：線上優先，離線退回 cache 或 index.html
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       try {
@@ -47,14 +47,14 @@ self.addEventListener('fetch', (event) => {
         const cache = await caches.open(CACHE_NAME);
         cache.put(req, net.clone());
         return net;
-      } catch (e) {
+      } catch {
         return (await caches.match(req)) || (await caches.match('./index.html'));
       }
     })());
     return;
   }
 
-  // 其他資源：快取優先，背景更新
+  // 其他資源：cache-first，背景更新
   event.respondWith((async () => {
     const cached = await caches.match(req);
     const fetching = fetch(req).then(res => {
