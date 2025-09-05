@@ -1,64 +1,77 @@
-// sw.js
-const CACHE_VER = 'v6';
+// sw.js (robust)
+const CACHE_VER = 'v9';
 const CACHE_NAME = `kms-${CACHE_VER}`;
-const ASSETS = [
+const CORE_ASSETS = [
   './',
   './index.html',
   './app.html',
   './auth.html',
   './backend.html',
+  './index.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
 
-// 安裝：預快取核心資源
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    for (const url of CORE_ASSETS) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (res && res.ok) await cache.put(url, res.clone());
+      } catch (e) {
+        // 忽略缺檔，避免整體安裝失敗
+      }
+    }
+    await self.skipWaiting();
+  })());
 });
 
-// 啟用：清理舊快取
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))))
-    ).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(k => k.startsWith('kms-') && k !== CACHE_NAME)
+        .map(k => caches.delete(k))
+    );
+    await self.clients.claim();
+  })());
 });
 
-// 取用：HTML 用網路優先，其餘採用 stale-while-revalidate
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  if (request.method !== 'GET') return;
+  const req = event.request;
+  const url = new URL(req.url);
 
-  const url = new URL(request.url);
+  // 只處理同網域 GET
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
 
-  // 對於導覽（HTML）頁，優先取網路（離線再落回快取）
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((c) => c.put(request, copy));
-        return res;
-      }).catch(() => caches.match(request).then((r) => r || caches.match('./index.html')))
-    );
+  // HTML：network-first，離線回退快取
+  if (req.headers.get('accept') && req.headers.get('accept').includes('text/html')) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req);
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(req, fresh.clone());
+        return fresh;
+      } catch (e) {
+        const cached = await caches.match(req);
+        return cached || caches.match('./index.html');
+      }
+    })());
     return;
   }
 
-  // 其他 GET：stale-while-revalidate
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const fetching = fetch(request).then((res) => {
-        // 只快取同源成功回應
-        if (res && res.status === 200 && res.type === 'basic') {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, copy));
-        }
-        return res;
-      }).catch(() => cached); // 斷網時回退舊快取
-      return cached || fetching;
-    })
-  );
+  // 其他：cache-first，背景更新
+  event.respondWith((async () => {
+    const cached = await caches.match(req);
+    const fetching = fetch(req).then((res) => {
+      if (res && res.status === 200 && res.type === 'basic') {
+        caches.open(CACHE_NAME).then((c) => c.put(req, res.clone()));
+      }
+      return res;
+    }).catch(() => cached);
+    return cached || fetching;
+  })());
 });
