@@ -2,49 +2,38 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>社區客服系統 · 功能頁（前台）</title>
+  <title>社區客服系統 · 首頁</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0a443f" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-
-  <!-- Material Web -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
   <script type="module">import 'https://esm.run/@material/web/all.js';</script>
-
   <style>
     :root{ --container-w: min(1140px, calc(100vw - 24px)); }
     html,body{height:100%}
-    body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial;background:#f6f7fb}
+    body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial;}
     md-top-app-bar{ position: sticky; top: 0; z-index: 110; }
+    .app-shell{display:flex;flex-direction:column;min-height:100%}
     .container{width:var(--container-w);margin-inline:auto}
-    .muted{opacity:.66}
-
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 16px}
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.06)}
-    th,td{padding:12px 12px;border-bottom:1px solid #eee;vertical-align:top}
-    th{background:#f9fafb;text-align:left;font-weight:800}
-    tbody tr:hover{background:#fafafa}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-
-    .panel{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
-    .panel-body{padding:18px}
-
-    #installCta{ position:fixed; right:16px; bottom: calc(env(safe-area-inset-bottom) + 132px); z-index:1200; display:none; }
-    @media (max-width: 420px){ #installCta{ right:12px; bottom: calc(env(safe-area-inset-bottom) + 96px); } }
+    .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+    .tile{position:relative;border-radius:18px;overflow:hidden;min-height:200px;color:#fff;background-size:cover;background-position:center;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.12);transition:transform .15s, box-shadow .15s, filter .15s}
+    .tile:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(0,0,0,.18); filter:saturate(1.05); }
+    .tile::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.28))}
+    .tile > .inner{position:relative;padding:22px;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+    .badge{position:absolute;top:10px;right:10px;background:#FFD54F;color:#2b2b2b;border-radius:999px;padding:6px 10px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+    .kicker{opacity:.95;font-weight:600;line-height:1.9}
+    .title{font-size:22px;font-weight:900;letter-spacing:.3px;margin:4px 0 8px}
+    .items{line-height:1.9;font-weight:600;opacity:.95}
   </style>
 </head>
-<body>
-  <!-- App Bar -->
+<body class="app-shell">
   <md-top-app-bar>
-    <md-icon-button slot="navigationIcon" aria-label="首頁" title="首頁" onclick="location.href='index.html'">
-      <span class="material-symbols-outlined">home</span>
-    </md-icon-button>
-    <div slot="headline" style="font-weight:900;letter-spacing:.4px" id="pageHeadline">社區客服 · 功能頁</div>
+    <div slot="navigationIcon" style="padding-left:6px"><span class="material-symbols-outlined">apartment</span></div>
+    <div slot="headline" style="font-weight:900;letter-spacing:.4px">社區客服系統</div>
 
-    <!-- 使用者選單（登入後只顯示登出） -->
     <md-menu id="userMenu" anchor="userBtn">
       <md-menu-item disabled>
         <div slot="headline" id="authName">訪客</div>
@@ -63,251 +52,70 @@
     <md-icon-button id="userBtn" slot="actionItems" aria-label="帳號" title="帳號" onclick="userMenu.show()">
       <span class="material-symbols-outlined">account_circle</span>
     </md-icon-button>
+
+    <!-- 管理後台：若未登入會先登入；若已登入但非管委會，當場阻擋 -->
+    <md-icon-button slot="actionItems" aria-label="管理後台" title="管理後台" onclick="return goBackendFromHome(event)">
+      <span class="material-symbols-outlined">admin_panel_settings</span>
+    </md-icon-button>
   </md-top-app-bar>
 
-  <!-- 主內容 -->
   <main class="container" style="padding:22px 0 28px">
-    <h2 id="tabTitle" style="font-weight:900;letter-spacing:.3px;margin:0 0 6px"></h2>
-    <div class="muted" id="tabHint" style="margin-bottom:12px"></div>
-
-    <div class="toolbar">
-      <md-outlined-text-field id="searchBox" label="搜尋關鍵字" type="search" style="min-width:220px"></md-outlined-text-field>
-      <md-text-button id="btnRefresh"><span class="material-symbols-outlined" slot="icon">refresh</span>重新整理</md-text-button>
-      <!-- 注意：前台不提供「新增」，新增集中在後台 -->
+    <div style="margin:8px 0 18px">
+      <h2 style="font-weight:900;letter-spacing:.3px;margin:0">快速入口</h2>
+      <div class="muted" style="margin-top:6px">可瀏覽首頁；點功能會要求登入，登入後自動回到該功能。</div>
     </div>
 
-    <section class="panel">
-      <div class="panel-body">
-        <div style="overflow:auto">
-          <table id="dataTable">
-            <thead id="thead"></thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
-      </div>
+    <section class="grid">
+      <a class="tile" onclick="return gotoProtected(event)" href="app.html#announcement" style="background-image:url('https://images.unsplash.com/photo-1581090463728-28b1b3a4f50b?q=80&w=1400&auto=format&fit=crop')">
+        <div class="badge">公告 / 投票</div>
+        <div class="inner"><div class="kicker">🗳️ 公告 / 投票</div><div class="title">社區公告與投票</div><div class="items">瀏覽 · 投票</div></div>
+      </a>
+
+      <a class="tile" onclick="return gotoProtected(event)" href="app.html#maintenance" style="background-image:url('https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?q=80&w=1400&auto=format&fit=crop')">
+        <div class="badge">維修 / 客服</div>
+        <div class="inner"><div class="kicker">🛠️ 維修 / 客服</div><div class="title">設備維護與客服單</div><div class="items">瀏覽 · 狀態更新</div></div>
+      </a>
+
+      <a class="tile" onclick="return gotoProtected(event)" href="app.html#finance" style="background-image:url('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=1400&auto=format&fit=crop')">
+        <div class="badge">帳務 / 收費</div>
+        <div class="inner"><div class="kicker">💵 帳務 / 收費</div><div class="title">管理費與收支</div><div class="items">瀏覽 · 設為已繳/未繳</div></div>
+      </a>
+
+      <a class="tile" onclick="return gotoProtected(event)" href="app.html#resident" style="background-image:url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1400&auto=format&fit=crop')">
+        <div class="badge">住戶 / 人員</div>
+        <div class="inner"><div class="kicker">🏷️ 住戶 / 人員</div><div class="title">住戶與社區人員</div><div class="items">瀏覽 · 刪除</div></div>
+      </a>
+
+      <a class="tile" onclick="return gotoProtected(event)" href="app.html#visitor" style="background-image:url('https://images.unsplash.com/photo-1529078146-58e3c81d4ebc?q=80&w=1400&auto=format&fit=crop')">
+        <div class="badge">訪客 / 包裹</div>
+        <div class="inner"><div class="kicker">📦 訪客 / 包裹</div><div class="title">訪客與包裹</div><div class="items">瀏覽 · 簽出</div></div>
+      </a>
+
+      <a class="tile" onclick="return gotoProtected(event)" href="app.html#meeting" style="background-image:url('https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1400&auto=format&fit=crop')">
+        <div class="badge">會議 / 活動</div>
+        <div class="inner"><div class="kicker">📝 會議 / 活動</div><div class="title">議程與活動</div><div class="items">瀏覽 · 刪除</div></div>
+      </a>
     </section>
   </main>
 
-  <!-- 安裝 App FAB -->
   <md-fab id="installCta" label="安裝 App" variant="secondary">
     <span class="material-symbols-outlined" slot="icon">download</span>
   </md-fab>
 
   <script src="index.js"></script>
   <script>
-    // ====== 小工具 ======
-    const fmt = (t) => !t ? '' : (t.toString().slice(0,16).replace('T',' '));
+    initPage('front');
 
-    // ====== 各模組定義（前台版：無新增，必要操作前先檢查登入） ======
-    const MODULES = {
-      announcement: {
-        title: '公告 / 投票',
-        hint: '瀏覽公告與投票。若需「新增公告」，請至管理後台。',
-        columns: [
-          { key: 'title', label: '標題' },
-          { key: (r)=>fmt(r.time), label: '時間', width: 160 },
-          { key: 'author', label: '作者', width: 120 },
-          { key: (r)=> (r.options||[]).map(o=>`${o}:${r.votes?.[o]||0}`).join(' / '), label: '投票' },
-          { key: '_actions', label: '動作', width: 280 }
-        ],
-        list: ()=> Ann.list(),
-        rowActions: (r)=>{
-          const opts = (r.options||[]).map(o=>`<md-text-button data-act="vote" data-id="${r.id}" data-opt="${o}">${o} 投票</md-text-button>`).join('');
-          return `${opts}
-            <md-text-button data-act="del" data-id="${r.id}" style="color:#b00020">刪除</md-text-button>`;
-        },
-        handleAction: (act, id, extra)=>{
-          if (act==='vote') {
-            if (!guardAction(location.pathname+location.hash)) return;
-            Ann.vote(id, extra.opt);
-          } else if (act==='del') {
-            if (!guardAction(location.pathname+location.hash)) return;
-            if (confirm('刪除此公告？')) Ann.remove(id);
-          }
-        }
-      },
-      maintenance: {
-        title: '維修 / 客服',
-        hint: '瀏覽工單、調整狀態或指派。若需「新增工單」，請至管理後台。',
-        columns: [
-          { key: 'equipment', label: '設備' },
-          { key: 'item', label: '項目' },
-          { key: 'time', label: '時間', width: 150 },
-          { key: 'handler', label: '承辦', width: 120 },
-          { key: (r)=>'$'+(r.cost||0), label: '費用', width: 100 },
-          { key: 'status', label: '狀態', width: 100 },
-          { key: 'assignee', label: '指派', width: 120 },
-          { key: '_actions', label: '動作', width: 360 }
-        ],
-        list: ()=> Maint.list(),
-        rowActions: (r)=> `
-          <md-text-button data-act="st" data-id="${r.id}" data-s="open">開單</md-text-button>
-          <md-text-button data-act="st" data-id="${r.id}" data-s="progress">處理中</md-text-button>
-          <md-text-button data-act="st" data-id="${r.id}" data-s="closed">結案</md-text-button>
-          <md-text-button data-act="assign" data-id="${r.id}">指派</md-text-button>
-          <md-text-button data-act="del" data-id="${r.id}" style="color:#b00020">刪除</md-text-button>`,
-        handleAction: (act, id, extra)=>{
-          if (act==='st') {
-            if (!guardAction()) return;
-            Maint.setStatus(id, extra.s);
-          } else if (act==='assign') {
-            if (!guardAction()) return;
-            const p = prompt('指派對象：', Maint.get(id)?.assignee || '');
-            if (p!=null) Maint.assign(id, p);
-          } else if (act==='del') {
-            if (!guardAction()) return;
-            if (confirm('刪除此工單？')) Maint.remove(id);
-          }
-        }
-      },
-      finance: {
-        title: '帳務 / 收費',
-        hint: '瀏覽與更新繳費狀態。若需「新增費用」，請至管理後台。',
-        columns: [
-          { key: 'room', label: '房號', width: 120 },
-          { key: (r)=>'$'+(r.amount||0), label: '金額', width: 100 },
-          { key: 'due', label: '到期', width: 140 },
-          { key: (r)=> r.paid?'已繳':'未繳', label: '狀態', width: 90 },
-          { key: 'invoice', label: '發票', width: 150 },
-          { key: '_actions', label: '動作', width: 220 }
-        ],
-        list: ()=> Fee.list(),
-        rowActions: (r)=> `
-          <md-text-button data-act="paid" data-id="${r.id}">${r.paid?'設為未繳':'設為已繳'}</md-text-button>
-          <md-text-button data-act="del" data-id="${r.id}" style="color:#b00020">刪除</md-text-button>`,
-        handleAction: (act, id)=>{
-          if (act==='paid') {
-            if (!guardAction()) return;
-            const f = Fee.get(id); Fee.setPaid(id, !f.paid);
-          } else if (act==='del') {
-            if (!guardAction()) return;
-            if (confirm('刪除此費用？')) Fee.remove(id);
-          }
-        }
-      },
-      resident: {
-        title: '住戶 / 人員',
-        hint: '瀏覽名冊與刪除。若需「新增住戶」，請至管理後台。',
-        columns: [
-          { key: 'name', label: '姓名' },
-          { key: 'room', label: '房號', width: 120 },
-          { key: 'phone', label: '電話', width: 140 },
-          { key: 'email', label: 'Email', width: 200 },
-          { key: 'role', label: '身分', width: 100 },
-          { key: '_actions', label: '動作', width: 120 }
-        ],
-        list: ()=> Resi.list(),
-        rowActions: (r)=> `<md-text-button data-act="del" data-id="${r.id}" style="color:#b00020">刪除</md-text-button>`,
-        handleAction: (act, id)=>{
-          if (act==='del') {
-            if (!guardAction()) return;
-            if (confirm('刪除此住戶？')) Resi.remove(id);
-          }
-        }
-      },
-      visitor: {
-        title: '訪客 / 包裹',
-        hint: '瀏覽與簽出。若需「新增訪客／包裹」，請至管理後台。',
-        columns: [
-          { key: 'name', label: '姓名' },
-          { key: 'room', label: '房號', width: 120 },
-          { key: 'in', label: '進場', width: 170 },
-          { key: 'out', label: '離場', width: 170 },
-          { key: '_actions', label: '動作', width: 200 }
-        ],
-        list: ()=> Visit.list(),
-        rowActions: (r)=> `
-          ${r.out ? '' : `<md-text-button data-act="out" data-id="${r.id}">簽出</md-text-button>`}
-          <md-text-button data-act="del" data-id="${r.id}" style="color:#b00020">刪除</md-text-button>`,
-        handleAction: (act, id)=>{
-          if (act==='out') {
-            if (!guardAction()) return;
-            Visit.checkout(id);
-          } else if (act==='del') {
-            if (!guardAction()) return;
-            if (confirm('刪除此紀錄？')) Visit.remove(id);
-          }
-        }
-      },
-      meeting: {
-        title: '會議 / 活動',
-        hint: '瀏覽與刪除。若需「新增會議／活動」，請至管理後台。',
-        columns: [
-          { key: (r)=>r.topic||r.name, label: '主題' },
-          { key: 'time', label: '時間', width: 160 },
-          { key: 'location', label: '地點', width: 160 },
-          { key: 'notes', label: '備註' },
-          { key: '_actions', label: '動作', width: 120 }
-        ],
-        list: ()=> Meet.list(),
-        rowActions: (r)=> `<md-text-button data-act="del" data-id="${r.id}" style="color:#b00020">刪除</md-text-button>`,
-        handleAction: (act, id)=>{
-          if (act==='del') {
-            if (!guardAction()) return;
-            if (confirm('刪除此會議？')) Meet.remove(id);
-          }
-        }
+    function goBackendFromHome(ev){
+      if (!isLoggedIn()) return gotoProtected(ev);           // 先登入
+      if (!hasRole('committee')) {                           // 已登入但非管委會
+        ev.preventDefault();
+        alert('管理後台僅限「管委會」使用。');
+        return false;
       }
-    };
-
-    // ------- 目前模組 -------
-    function currentKey(){
-      const key = (location.hash||'#announcement').slice(1);
-      return MODULES[key] ? key : 'announcement';
+      location.href = 'backend.html';
+      return true;
     }
-
-    // ------- 渲染 -------
-    function render(){
-      const key = currentKey();
-      const mod = MODULES[key];
-      document.getElementById('pageHeadline').textContent = '社區客服 · ' + mod.title;
-      document.getElementById('tabTitle').textContent = mod.title;
-      document.getElementById('tabHint').textContent  = mod.hint;
-
-      // head
-      const thead = document.getElementById('thead');
-      thead.innerHTML = `<tr>${mod.columns.map(c=>`<th${c.width?` style="width:${c.width}px"`:''}>${c.label}</th>`).join('')}</tr>`;
-
-      // data
-      const kw = document.getElementById('searchBox').value.trim().toLowerCase();
-      const data = mod.list().filter(row => !kw || JSON.stringify(row).toLowerCase().includes(kw));
-
-      const tbody = document.getElementById('tbody');
-      tbody.innerHTML = data.map(r=>{
-        const tds = mod.columns.map(c=>{
-          if (c.key === '_actions') return `<td class="actions">${mod.rowActions(r) || ''}</td>`;
-          const val = (typeof c.key === 'function') ? c.key(r) : (r[c.key] ?? '');
-          return `<td>${val===''?'<span class="muted">—</span>':val}</td>`;
-        }).join('');
-        return `<tr data-id="${r.id}">${tds}</tr>`;
-      }).join('') || `<tr><td colspan="${mod.columns.length}" class="muted" style="text-align:center;padding:22px">目前沒有資料</td></tr>`;
-    }
-
-    // 事件委派：列上的按鈕（任何修改動作先守門）
-    document.getElementById('tbody').addEventListener('click', (e)=>{
-      const btn = e.target.closest('[data-act]');
-      if (!btn) return;
-      if (!guardAction(location.pathname + location.hash)) return; // 未登入 -> 先登入
-      const key = currentKey();
-      const mod = MODULES[key];
-      const act = btn.getAttribute('data-act');
-      const id  = btn.getAttribute('data-id');
-      const extra = { s: btn.getAttribute('data-s'), opt: btn.getAttribute('data-opt') };
-      try { mod.handleAction && mod.handleAction(act, id, extra); }
-      catch(err) { alert(err?.message || String(err)); }
-    });
-
-    // ------- 初始與自動重繪（頁面可看，不強制先登入） -------
-    function boot(){
-      initPage('app');   // 顯示帳號/切換登入登出、註冊 SW、安裝按鈕
-      render();          // 直接渲染可視內容
-    }
-    document.getElementById('btnRefresh').addEventListener('click', render);
-    document.getElementById('searchBox').addEventListener('input', render);
-    window.addEventListener('dbchange', render);
-    window.addEventListener('hashchange', render);
-    window.addEventListener('pageshow', render);
-    document.addEventListener('DOMContentLoaded', boot);
   </script>
 </body>
 </html>
