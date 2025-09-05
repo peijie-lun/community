@@ -1,5 +1,5 @@
-// sw.js (robust)
-const CACHE_VER = 'v11';
+// sw.js (stable)
+const CACHE_VER = 'v12';
 const CACHE_NAME = `kms-${CACHE_VER}`;
 const CORE_ASSETS = [
   './',
@@ -20,9 +20,7 @@ self.addEventListener('install', (event) => {
       try {
         const res = await fetch(url, { cache: 'no-store' });
         if (res && res.ok) await cache.put(url, res.clone());
-      } catch (e) {
-        // 忽略缺檔，避免整體安裝失敗
-      }
+      } catch (_) { /* 忽略缺檔，避免整體安裝失敗 */ }
     }
     await self.skipWaiting();
   })());
@@ -31,51 +29,37 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(
-      keys.filter(k => k.startsWith('kms-') && k !== CACHE_NAME)
-          .map(k => caches.delete(k))
-    );
+    await Promise.all(keys
+      .filter(k => k.startsWith('kms-') && k !== CACHE_NAME)
+      .map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
 
-// 在 fetch 事件中，加上導覽請求 (navigate) 的處理
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
-  // 導覽（HTML）→ 網路優先、離線退回快取，避免舊頁反覆載入
+  // HTML 導覽：線上優先，離線退回快取或 index.html
   if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req).then(r => {
-        const copy = r.clone();
-        caches.open(CACHE_NAME).then(c => c.put(req, copy));
-        return r;
-      }).catch(() => caches.match(req))
-    );
+    event.respondWith((async () => {
+      try {
+        const net = await fetch(req);
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(req, net.clone());
+        return net;
+      } catch (e) {
+        return (await caches.match(req)) || (await caches.match('./index.html'));
+      }
+    })());
     return;
   }
 
-  // 其他資源維持「快取先、背景更新」或你的原策略
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const fetching = fetch(req).then((res) => {
-        if (res && res.status === 200 && res.type === 'basic') {
-          caches.open(CACHE_NAME).then((c) => c.put(req, res.clone()));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || fetching;
-    })
-  );
-
-
-
-  // 其他：cache-first，背景更新
+  // 其他資源：快取優先，背景更新
   event.respondWith((async () => {
     const cached = await caches.match(req);
-    const fetching = fetch(req).then((res) => {
-      if (res && res.status === 200 && res.type === 'basic') {
-        caches.open(CACHE_NAME).then((c) => c.put(req, res.clone()));
+    const fetching = fetch(req).then(res => {
+      if (res && res.status === 200 && (res.type === 'basic' || res.type === 'cors')) {
+        caches.open(CACHE_NAME).then(c => c.put(req, res.clone()));
       }
       return res;
     }).catch(() => cached);
