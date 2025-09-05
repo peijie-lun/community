@@ -214,6 +214,21 @@ function initPWA(buttonId = "installCta") {
     btn.style.display = "none";
   });
 }
+/* ============================ 頁面初始化 ============================ */
+function initPage(kind) {
+  // 1) 先把登入/登出選單狀態更新
+  updateAuthUI();
+
+  // 2) 啟動 PWA 安裝按鈕與 SW（內含 beforeinstallprompt 處理）
+  initPWA("installCta");
+
+  // 3) 若是後台頁但使用者不是管委會，這裡再保險一次（多一道保護）
+  if (kind === 'backend') {
+    ensureBackend(); // 未登入會被帶去 auth.html，非管委會會被請回首頁
+  }
+}
+// 讓各頁可以呼叫
+window.initPage = initPage;
 
 
 /* ============================ 工具 ============================ */
