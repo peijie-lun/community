@@ -2,318 +2,91 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>社區客服 · 內頁</title>
+  <title>社區客服系統 · 功能頁</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a443f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <!-- Material Web -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
   <script type="module">import 'https://esm.run/@material/web/all.js';</script>
-  <meta name="theme-color" content="#0a443f" />
-<link rel="manifest" href="manifest.webmanifest" />
-<link rel="icon" href="icons/icon-192.png" />
-<link rel="apple-touch-icon" href="icons/icon-192.png" />
 
   <style>
     :root{ --container-w: min(1140px, calc(100vw - 24px)); }
     html,body{height:100%}
-    body{margin:0;font-family: Roboto, system-ui,-apple-system,"Segoe UI",Arial}
-    md-top-app-bar{position:sticky;top:0;z-index:20}
-    .container{width:var(--container-w);margin-inline:auto;padding:18px 0 28px}
-    .panel{border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.10);background:#fff}
-    .panel-body{padding:18px}
-    table{width:100%;border-collapse:separate;border-spacing:0}
-    thead th{ text-align:left;background:#F4F6F8;border-bottom:1px solid #e7eaee;padding:10px 12px;font-weight:700 }
-    tbody td{padding:10px 12px;border-bottom:1px solid #eef1f4}
-    tbody tr:hover{background:#fafbfd}
-    .banner{margin:12px 0;padding:12px 14px;border-radius:12px;background:#fde7e9;color:#9f2d2f;border:1px solid #f5c6cb}
+    body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial;}
+    md-top-app-bar{ position: sticky; top: 0; z-index: 110; }
+    .container{width:var(--container-w);margin-inline:auto}
+    .muted{opacity:.66}
   </style>
 </head>
 <body>
-  <!-- App Bar -->
   <md-top-app-bar>
-    <md-icon-button slot="navigationIcon" id="btnBack" aria-label="返回">
-      <span class="material-symbols-outlined">arrow_back</span>
+    <md-icon-button slot="navigationIcon" aria-label="首頁" title="首頁" onclick="location.href='index.html'">
+      <span class="material-symbols-outlined">home</span>
     </md-icon-button>
-    <div slot="headline" id="pageTitle" style="font-weight:900;letter-spacing:.3px">內頁</div>
-    <a href="index.html" slot="end" style="text-decoration:none"><md-text-button>回首頁</md-text-button></a>
+    <div slot="headline" style="font-weight:900;letter-spacing:.4px">社區客服 · 功能頁</div>
+
+    <md-menu id="userMenu" anchor="userBtn">
+      <md-menu-item disabled>
+        <div slot="headline" id="authName">使用者</div>
+        <div slot="supporting-text" id="authMail" class="muted">user@example.com</div>
+      </md-menu-item>
+      <md-divider></md-divider>
+      <md-menu-item onclick="logout()">
+        <span slot="start" class="material-symbols-outlined">logout</span>
+        <div slot="headline">登出</div>
+      </md-menu-item>
+    </md-menu>
+    <md-icon-button id="userBtn" slot="actionItems" aria-label="帳號" title="帳號" onclick="userMenu.show()">
+      <span class="material-symbols-outlined">account_circle</span>
+    </md-icon-button>
   </md-top-app-bar>
 
-  <main class="container">
-    <section class="panel"><div class="panel-body">
-      <div id="content"><!-- JS render --></div>
-    </div></section>
+  <main class="container" style="padding:22px 0 28px">
+    <h2 id="tabTitle" style="font-weight:900;letter-spacing:.3px;margin:0 0 12px"></h2>
+    <div class="muted" style="margin-bottom:16px">此頁需登入一般帳號即可存取。</div>
+
+    <div id="content">
+      <!-- 這裡可依 hash 顯示不同模組內容；先放簡單範例 -->
+      <div id="announcement" hidden>公告/投票內容…</div>
+      <div id="maintenance" hidden>維修/客服內容…</div>
+      <div id="finance" hidden>帳務/收費內容…</div>
+      <div id="resident" hidden>住戶/人員內容…</div>
+      <div id="visitor" hidden>訪客/包裹內容…</div>
+      <div id="meeting" hidden>會議/活動內容…</div>
+    </div>
   </main>
-<!-- 安裝 App 浮動按鈕 -->
-<button id="installCta"
-  style="position:fixed; right:16px; bottom:24px; z-index:1200; display:none; padding:10px 14px; border-radius:999px; border:none; background:#0a443f; color:#fff; box-shadow:0 6px 20px rgba(0,0,0,.18);">
-  下載 / 安裝 App
-</button>
 
-<script>
-// Service Worker 註冊 + PWA 安裝提示
-(function(){
-  const fab = document.getElementById('installCta');
-  let deferredPrompt = null;
+  <!-- 安裝 App FAB -->
+  <md-fab id="installCta" label="安裝 App" variant="secondary">
+    <span class="material-symbols-outlined" slot="icon">download</span>
+  </md-fab>
 
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(console.warn);
-  }
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    if (fab) fab.style.display = '';
-  });
-
-  fab?.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    try { await deferredPrompt.userChoice; } catch {}
-    deferredPrompt = null;
-    fab.style.display = 'none';
-  });
-
-  window.addEventListener('appinstalled', () => {
-    deferredPrompt = null;
-    if (fab) fab.style.display = 'none';
-  });
-})();
-</script>
-
-  <md-snackbar id="snack"></md-snackbar>
-
+  <script src="index.js"></script>
   <script>
-  /* ===== 共用資料（與首頁一致） ===== */
-  const demoResidents=[{id:1,name:"王大明",room:"A101",phone:"0912-345678",car:"ABC-1234",moveIn:"2021-09-01",family:"王太太、王小明"},{id:2,name:"林小美",room:"A102",phone:"0922-222222",car:"XYZ-5678",moveIn:"2023-06-15",family:"林爸爸、林媽媽"}];
-  const demoStaff=[{id:1,name:"李主委",role:"主委",phone:"0933-111111"},{id:2,name:"陳清潔",role:"清潔人員",phone:"0933-222222"}];
-  const demoVisitors=[{id:1,name:"陳訪客",idCard:"A123456789",room:"A101",in:"2025-08-22 10:00",out:"2025-08-22 11:00",note:"送文件"}];
-  const demoFees=[{id:1,room:"A101",amount:1200,due:"2025-09-10",paid:true,invoice:"INV20250801"},{id:2,room:"A102",amount:1200,due:"2025-09-10",paid:false,invoice:"INV20250802"}];
-  const demoAnnouncements=[{id:1,title:"停水通知",content:"8/25上午9~12點停水。",time:"2025-08-20",author:"李主委",attachment:""}];
-  const demoActivities=[{id:1,name:"中秋烤肉",time:"2025-09-15 18:00",location:"中庭",signup:"現場報名",organizer:"王大明"}];
-  const demoMaintenances=[{id:1,equipment:"電梯",item:"年度保養",time:"2025-08-10",handler:"保養公司",cost:8000,note:"正常"}];
-  const demoQA=[{id:1,room:"A101",q:"垃圾怎麼分類？",a:"請依公告分類",status:"已回覆",time:"2025-08-19"}];
-  const demoMeetings=[{id:1,topic:"財務審查",time:"2025-08-18",location:"會議室",participants:"主委、住戶代表",record:"討論收支",resolution:"通過"}];
-  const demoExpenditures=[{id:1,item:"清潔用品",amount:1500,date:"2025-08-12",purpose:"大樓清潔",proof:"收據"}];
-  const demoParcels=[{id:1,receiver:"王大明",room:"A101",code:"PKG12345",arrival:"2025-08-21 14:00",received:true}];
-  const demoRepairs=[{id:'R_demo1',room:"A101",item:"水龍頭漏水",desc:"廚房水龍頭持續滴水",time:"2025-08-21 10:20",status:"ASSIGNED",createdBy:"a101@demo",assigneeVendor:"水電小王子",photos:[],progress:[]}];
-  const demoVotes=[{id:'V_demo1',title:'是否汰換大門指紋辨識主機？',options:['同意','不同意','保留，需更多資訊'],deadline:'2025-09-30 23:59',status:'OPEN',createdAt:'2025-08-20 09:00',createdBy:'committee@demo',responses:[]}];
+    ensureLogin();        // 未登入則導去 auth.html?next=app.html#...
+    initPage('app');      // 更新使用者顯示、PWA 安裝
+    showSectionFromHash(); // 顯示對應模組
+    window.addEventListener('hashchange', showSectionFromHash);
 
-  const AUTH_KEY="demo_auth_user";
-  const LSK={repairs:"kms_repairs",announcements:"kms_ann",fees:"kms_fees",votes:"kms_votes"};
-  const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-  const load=(k,def)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):def;}catch{return def;}};
-  const getUser =()=>JSON.parse(localStorage.getItem(AUTH_KEY)||"null");
-  const setUser =u=>localStorage.setItem(AUTH_KEY,JSON.stringify(u));
-  const isLoggedIn=()=>!!localStorage.getItem(AUTH_KEY);
-  const getRole =()=> (getUser()?.role)||"guest";
-  const gid=(p)=> p+Math.random().toString(36).slice(2,8);
-  // 初始化 demo 資料
-  if(!localStorage.getItem(LSK.repairs)) save(LSK.repairs,demoRepairs);
-  if(!localStorage.getItem(LSK.announcements)) save(LSK.announcements,demoAnnouncements);
-  if(!localStorage.getItem(LSK.fees)) save(LSK.fees,demoFees);
-  if(!localStorage.getItem(LSK.votes)) save(LSK.votes,demoVotes);
-
-  // 公告已讀
-  function annReadKey(){const email=getUser()?.email;return email?`ann_read_${email}`:null;}
-  function getAnnReadSet(){
-  const k = annReadKey();
-  if (!k) return new Set();
-  try {
-    const arr = JSON.parse(localStorage.getItem(k) || '[]');
-    return new Set(arr.map(String));
-  } catch {
-    return new Set();
-  }
-}
-
-  function saveAnnReadSet(set){const k=annReadKey();if(!k)return;localStorage.setItem(k,JSON.stringify([...set]));}
-
-  // 小工具
-  const qs = (k)=> new URL(location.href).searchParams.get(k)||"";
-  function toast(msg='完成',ms=2200){const s=document.getElementById('snack'); s.labelText=msg; s.open=true; setTimeout(()=>s.open=false,ms);}
-
-  // 搜尋包裝
-  function withSearch(tableHtml, ph='關鍵字搜尋'){
-    const id='tbl_'+Math.random().toString(36).slice(2,8);
-    return `<div style="margin-bottom:8px">
-      <md-outlined-text-field label="${ph}" style="width:100%" type="search"
-        oninput="(function(el){const w=document.getElementById('${id}');if(!w)return;const key=el.value.trim().toLowerCase();w.querySelectorAll('tbody tr').forEach(tr=>tr.style.display= key===''||tr.textContent.toLowerCase().includes(key)?'':'none');})(this)">
-      </md-outlined-text-field></div><div id="${id}">${tableHtml}</div>`;
-  }
-
-  // 內頁渲染（與首頁一致）
-  function render(tab){
-    const c=document.getElementById('content');
-    const TITLE={
-      resident:"住戶資料",staff:"主委、清潔人員資料",visitor:"訪客紀錄",fee:"管理費",
-      announcement:"社區公告",vote:"社區投票",activity:"社區活動時程",repair:"報修申請",
-      maintenance:"維修、保養紀錄",qa:"客服問答",meeting:"會議紀錄",expenditure:"財務支出",parcel:"信件包裹"
-    };
-    document.getElementById('pageTitle').textContent=TITLE[tab]||'功能';
-
-    let html='';
-    const PLACE={
-      resident:'搜尋：姓名 / 房號 / 電話',staff:'搜尋：姓名 / 職位',visitor:'搜尋：姓名 / 房號 / 時間',
-      fee:'搜尋：房號 / 發票',announcement:'搜尋：標題 / 內容 / 發布人',vote:'搜尋：主題 / 狀態 / 截止日',
-      activity:'搜尋：活動 / 地點',repair:'搜尋：房號 / 項目 / 狀態',maintenance:'搜尋：設備 / 項目 / 負責人',
-      qa:'搜尋：問題 / 回覆 / 房號',meeting:'搜尋：主題 / 地點 / 參與人',expenditure:'搜尋：項目 / 用途 / 金額',parcel:'搜尋：收件人 / 包裹編號'
-    };
-
-    if(tab==='resident'){
-      const role=getRole();
-      if(role==='vendor'){ html='<div class="banner">您目前為「廠商」角色，無權限瀏覽住戶資料。</div>'; }
-      else{
-        let rows=demoResidents;
-        if(role==='resident'){
-          const myRoom=getUser()?.room;
-          if(!myRoom){ c.innerHTML='<div class="banner">尚未綁定房號，請到首頁「修改資料」填寫房號後再查看。</div>'; return; }
-          rows=rows.filter(r=>r.room===myRoom);
-        }
-        const table=`<table><thead><tr><th>姓名</th><th>房號</th><th>聯絡方式</th><th>車位</th><th>入住時間</th><th>家庭成員</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${r.room}</td><td>${r.phone}</td><td>${r.car}</td><td>${r.moveIn}</td><td>${r.family}</td></tr>`).join('')}</tbody></table>`;
-        html = withSearch(table, PLACE[tab]);
-      }
+    function showSectionFromHash(){
+      const id = (location.hash||'#announcement').slice(1);
+      document.querySelectorAll('#content > div').forEach(d=>d.hidden=true);
+      const el = document.getElementById(id);
+      if(el) el.hidden = false;
+      document.getElementById('tabTitle').textContent = ({
+        announcement:'公告 / 投票',
+        maintenance:'維修 / 客服',
+        finance:'帳務 / 收費',
+        resident:'住戶 / 人員',
+        visitor:'訪客 / 包裹',
+        meeting:'會議 / 活動'
+      }[id] || '功能');
     }
-
-    if(tab==='staff'){
-      const table=`<table><thead><tr><th>姓名</th><th>職位</th><th>聯絡方式</th></tr></thead><tbody>${demoStaff.map(s=>`<tr><td>${s.name}</td><td>${s.role}</td><td>${s.phone}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='visitor'){
-      const table=`<table><thead><tr><th>姓名</th><th>身分證</th><th>拜訪房號</th><th>進入時間</th><th>離開時間</th><th>備註</th></tr></thead><tbody>${demoVisitors.map(v=>`<tr><td>${v.name}</td><td>${v.idCard}</td><td>${v.room}</td><td>${v.in}</td><td>${v.out}</td><td>${v.note}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='fee'){
-      const fees=load(LSK.fees,demoFees);
-      const table=`<table><thead><tr><th>房號</th><th>金額</th><th>到期日</th><th>已繳</th><th>發票號碼</th></tr></thead><tbody>${fees.map(f=>`<tr><td>${f.room}</td><td>${f.amount}</td><td>${f.due}</td><td>${f.paid?'是':'否'}</td><td>${f.invoice}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='announcement'){
-      const anns=load(LSK.announcements,[]), readSet=getAnnReadSet();
-      const table=`<div style="display:flex;justify-content:space-between;align-items:center">
-          <div class="small text-muted">未讀：${anns.filter(a=>!readSet.has(String(a.id))).length}</div>
-          <md-outlined-button onclick="markAllAnnRead()">全部標記已讀</md-outlined-button>
-        </div>
-        <table><thead><tr><th style="width:80px">狀態</th><th>標題</th><th>內容</th><th>發布時間</th><th>發布人</th><th style="width:100px">附件</th></tr></thead><tbody>${
-          anns.map(a=>{
-            const unread=!readSet.has(String(a.id));
-            const status=unread?`<md-filled-tonal-button>未讀</md-filled-tonal-button>`:`<md-outlined-button>已讀</md-outlined-button>`;
-            return `<tr onclick="markAnnRead('${a.id}')"><td>${status}</td><td>${a.title}</td><td>${a.content}</td><td>${a.time}</td><td>${a.author}</td><td>${a.attachment||''}</td></tr>`;
-          }).join('')
-        }</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='vote'){
-      const role=getRole(); const list=load(LSK.votes,[]); const me=getUser()||{};
-      const canManage=(role==='committee'||role==='admin');
-      const canVote=(role==='resident'||role==='committee');
-      const topBtn=canManage?`<md-filled-button onclick="createVote()">＋ 新增投票</md-filled-button>`:'';
-      const table=`<div style="display:flex;justify-content:space-between;align-items:center"><div></div><div>${topBtn}</div></div>
-        <table><thead><tr><th>主題</th><th style="width:140px">截止</th><th style="width:90px">狀態</th><th>統計</th><th style="width:260px">動作</th></tr></thead><tbody>${
-          list.map(v=>{
-            const counts=Array(v.options.length).fill(0);
-            (v.responses||[]).forEach(r=>{if(Number.isInteger(r.choice)) counts[r.choice]++;});
-            const total=counts.reduce((a,b)=>a+b,0);
-            const stats=v.options.map((opt,i)=>{
-              const c=counts[i]; const pct=total?Math.round(c*100/total):0;
-              return `<div style="display:flex;justify-content:space-between"><span>${opt}</span><span>${c}（${pct}%）</span></div>`;
-            }).join('');
-            const hasVoted=(v.responses||[]).some(r=>r.email===me.email);
-            const badge=v.status==='OPEN'?(hasVoted?`<md-filled-tonal-button>已投</md-filled-tonal-button>`:`<md-filled-button>未投</md-filled-button>`):`<md-outlined-button>已關閉</md-outlined-button>`;
-            const voteBtn=(canVote&&v.status==='OPEN'&&!hasVoted)?`<md-filled-button onclick="votePoll('${v.id}')">前往投票</md-filled-button>`:'';
-            const resultBtn=`<md-outlined-button onclick="viewVote('${v.id}')">查看結果</md-outlined-button>`;
-            const manageBtn=(canManage&&v.status==='OPEN')?`<md-filled-tonal-button style="--md-sys-color-primary:#c62828" onclick="closeVote('${v.id}')">關閉投票</md-filled-tonal-button>`:'';
-            return `<tr><td>${v.title}</td><td>${v.deadline||'-'}</td><td>${badge}</td><td>${stats}</td><td style="display:flex;gap:8px;flex-wrap:wrap">${voteBtn}${resultBtn}${manageBtn}</td></tr>`;
-          }).join('')
-        }</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='activity'){
-      const table=`<table><thead><tr><th>活動名稱</th><th>時間</th><th>地點</th><th>報名方式</th><th>負責人</th></tr></thead><tbody>${demoActivities.map(a=>`<tr><td>${a.name}</td><td>${a.time}</td><td>${a.location}</td><td>${a.signup}</td><td>${a.organizer}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='repair'){
-      const role=getRole(); let list=load(LSK.repairs,[]);
-      if(role==='vendor'){ const me=(getUser()?.vendorName||getUser()?.name||getUser()?.email||'').toLowerCase(); list=list.filter(r=>(r.assigneeVendor||'').toLowerCase()===me); }
-      const topBtn=(role==='resident')?`<md-filled-button onclick="createRepair()">＋ 新增報修</md-filled-button>`:'';
-      const table=`<div style="display:flex;justify-content:space-between;align-items:center"><div class="small text-muted">角色：${role}</div><div>${topBtn}</div></div>
-        <table><thead><tr><th>房號</th><th>項目</th><th>描述</th><th>申請時間</th><th>狀態</th><th>指派廠商</th><th>動作</th></tr></thead><tbody>${
-          list.map(r=>{
-            const act=[];
-            if((role==='committee'||role==='admin')&&r.status==='NEW'){act.push(`<md-filled-tonal-button onclick="assignRepair('${r.id}')">指派</md-filled-tonal-button>`);}
-            if(role==='vendor'&&(r.status==='ASSIGNED'||r.status==='IN_PROGRESS')){act.push(`<md-filled-button onclick="reportProgress('${r.id}')">回報進度</md-filled-button>`);}
-            if((role==='committee'||role==='admin')&&r.status==='IN_PROGRESS'){act.push(`<md-filled-tonal-button onclick="closeRepair('${r.id}')">完工</md-filled-tonal-button>`);}
-            return `<tr><td>${r.room}</td><td>${r.item}</td><td>${r.desc}</td><td>${r.time}</td><td>${r.status}</td><td>${r.assigneeVendor||''}</td><td style="display:flex;gap:8px;flex-wrap:wrap">${act.join(' ')||'-'}</td></tr>`;
-          }).join('')
-        }</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='maintenance'){
-      const table=`<table><thead><tr><th>設備名稱</th><th>保養項目</th><th>時間</th><th>負責人</th><th>花費</th><th>紀錄</th></tr></thead><tbody>${demoMaintenances.map(m=>`<tr><td>${m.equipment}</td><td>${m.item}</td><td>${m.time}</td><td>${m.handler}</td><td>${m.cost}</td><td>${m.note}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='qa'){
-      const table=`<table><thead><tr><th>房號</th><th>問題</th><th>回覆</th><th>狀態</th><th>時間</th></tr></thead><tbody>${demoQA.map(q=>`<tr><td>${q.room}</td><td>${q.q}</td><td>${q.a}</td><td>${q.status}</td><td>${q.time}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='meeting'){
-      const table=`<table><thead><tr><th>主題</th><th>時間</th><th>地點</th><th>參與人員</th><th>紀錄</th><th>決議事項</th></tr></thead><tbody>${demoMeetings.map(m=>`<tr><td>${m.topic}</td><td>${m.time}</td><td>${m.location}</td><td>${m.participants}</td><td>${m.record}</td><td>${m.resolution}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='expenditure'){
-      const table=`<table><thead><tr><th>支出項目</th><th>金額</th><th>日期</th><th>用途</th><th>憑證</th></tr></thead><tbody>${demoExpenditures.map(e=>`<tr><td>${e.item}</td><td>${e.amount}</td><td>${e.date}</td><td>${e.purpose}</td><td>${e.proof}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    if(tab==='parcel'){
-      const table=`<table><thead><tr><th>收件人</th><th>房號</th><th>包裹編號</th><th>到達時間</th><th>領取狀態</th></tr></thead><tbody>${demoParcels.map(p=>`<tr><td>${p.receiver}</td><td>${p.room}</td><td>${p.code}</td><td>${p.arrival}</td><td>${p.received?'已領取':'未領取'}</td></tr>`).join('')}</tbody></table>`;
-      html = withSearch(table, PLACE[tab]);
-    }
-
-    c.innerHTML = html;
-  }
-
-  /* ===== 投票 & 報修 & 公告動作 ===== */
-  function createRepair(){ if(getRole()!=='resident'){toast('僅住戶可新增報修');return;} const room=getUser()?.room||prompt('房號？（例如 A101）'); if(!room) return; const item=prompt('報修項目？（例如 水龍頭漏水）'); if(!item) return; const desc=prompt('描述？')||''; const list=load(LSK.repairs,[]); list.unshift({id:gid('R_'),room,item,desc,time:new Date().toISOString().slice(0,16).replace('T',' '),status:'NEW',createdBy:getUser()?.email||'',assigneeVendor:'',photos:[],progress:[]}); save(LSK.repairs,list); toast('報修已送出（Demo）'); render(qs('tab')); }
-  function assignRepair(id){ const vendor=prompt('指派廠商名稱？（需與對方公司名稱一致）'); if(!vendor) return; const list=load(LSK.repairs,[]); const r=list.find(x=>x.id===id); if(!r) return; r.assigneeVendor=vendor; r.status='ASSIGNED'; save(LSK.repairs,list); toast('已指派（Demo）'); render(qs('tab')); }
-  function reportProgress(id){ const note=prompt('進度說明？'); if(note==null) return; const list=load(LSK.repairs,[]); const r=list.find(x=>x.id===id); if(!r) return; r.progress.push({time:new Date().toLocaleString(),note}); r.status='IN_PROGRESS'; save(LSK.repairs,list); toast('已回報（Demo）'); render(qs('tab')); }
-  function closeRepair(id){ const list=load(LSK.repairs,[]); const r=list.find(x=>x.id===id); if(!r) return; if(confirm('確定標記為完工？')){ r.status='DONE'; save(LSK.repairs,list); toast('已完工（Demo）'); render(qs('tab')); } }
-
-  function createVote(){ const role=getRole(); if(!(role==='committee'||role==='admin')){ toast('僅管委會與管理員可建立投票'); return; } const title=prompt('投票主題？'); if(!title) return; const optsStr=prompt('選項（以逗號分隔，至少 2 項）：','同意,不同意'); if(!optsStr) return; const options=optsStr.split(',').map(s=>s.trim()).filter(Boolean); if(options.length<2){ toast('至少需要 2 個選項'); return; } const deadline=prompt('截止時間（可留空），例：2025-09-30 23:59')||''; const list=load(LSK.votes,[]); list.unshift({id:gid('V_'),title,options,deadline,status:'OPEN',createdAt:new Date().toISOString().slice(0,16).replace('T',' '),createdBy:getUser()?.email||'',responses:[]}); save(LSK.votes,list); toast('已建立投票（Demo）'); render(qs('tab')); }
-  function votePoll(id){ const role=getRole(); if(!(role==='resident'||role==='committee')){ toast('您的角色無法投票'); return; } const list=load(LSK.votes,[]); const v=list.find(x=>x.id===id); if(!v){ toast('投票不存在'); return; } if(v.status!=='OPEN'){ toast('此投票已關閉'); return; } const me=getUser()||{}; if((v.responses||[]).some(r=>r.email===me.email)){ toast('您已投過票'); return; } const map=v.options.map((o,i)=>`${i+1}. ${o}`).join('\n'); const pickStr=prompt(`請輸入選項序號：\n${map}`); if(!pickStr) return; const idx=Number(pickStr)-1; if(!Number.isInteger(idx)||idx<0||idx>=v.options.length){ toast('序號不正確'); return; } const note=prompt('附註（可留空）')||''; v.responses=v.responses||[]; v.responses.push({email:me.email,name:me.name,role,choice:idx,note,time:new Date().toLocaleString()}); save(LSK.votes,list); toast('投票完成（Demo）'); render(qs('tab')); }
-  function viewVote(id){ const list=load(LSK.votes,[]); const v=list.find(x=>x.id===id); if(!v) return; const counts=Array(v.options.length).fill(0); (v.responses||[]).forEach(r=>{ if(Number.isInteger(r.choice)) counts[r.choice]++; }); const total=counts.reduce((a,b)=>a+b,0); const lines=v.options.map((opt,i)=>`${opt}：${counts[i]} 票（${total?Math.round(counts[i]*100/total):0}%）`).join('\n'); alert(`【${v.title}】\n${lines}\n\n總票數：${total}`); }
-  function closeVote(id){ const role=getRole(); if(!(role==='committee'||role==='admin')){ toast('僅管委會與管理員可關閉投票'); return; } const list=load(LSK.votes,[]); const v=list.find(x=>x.id===id); if(!v) return; if(v.status==='CLOSED'){ toast('已是關閉狀態'); return; } if(confirm('確定關閉此投票？')){ v.status='CLOSED'; save(LSK.votes,list); toast('已關閉（Demo）'); render(qs('tab')); } }
-
-  function markAnnRead(id){ const set=getAnnReadSet(); set.add(String(id)); saveAnnReadSet(set); render('announcement'); }
-  function markAllAnnRead(){ const anns=load(LSK.announcements,[]); saveAnnReadSet(new Set(anns.map(a=>String(a.id)))); render('announcement'); }
-
-  // 返回鍵
-  document.getElementById('btnBack').addEventListener('click', ()=> {
-    if (history.length > 1) history.back(); else location.href='index.html';
-  });
-
-  // 啟動：未登入導去 auth.html?next=...
-window.addEventListener('DOMContentLoaded', ()=>{
-    if (!isLoggedIn()) {
-      const next = location.href;
-      location.href = `auth.html?next=${encodeURIComponent(next)}`;
-      return;
-    }
-    const tab = new URL(location.href).searchParams.get('tab') || 'resident';
-    render(tab);
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(()=>{});
-    }
-  });
   </script>
 </body>
 </html>
