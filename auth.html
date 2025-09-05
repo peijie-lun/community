@@ -17,75 +17,107 @@
   <style>
     html,body{height:100%}
     body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial; background:#f6f7fb; display:grid; place-items:center}
-    .card{background:#fff; width:min(520px, calc(100vw - 24px)); border-radius:18px; box-shadow:0 16px 48px rgba(0,0,0,.1); padding:22px}
+    .card{background:#fff; width:min(720px, calc(100vw - 24px)); border-radius:18px; box-shadow:0 16px 48px rgba(0,0,0,.1); padding:22px}
     .muted{opacity:.66}
     .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    form{display:block}
+    .err{color:#b00020;margin-top:8px;display:none}
+    .banner{display:flex;align-items:center;gap:10px;background:#eaf1ef;color:#0a443f;padding:10px 12px;border-radius:12px;margin:6px 0 14px}
   </style>
 </head>
 <body>
   <div class="card">
     <h2 style="margin:0 0 4px; font-weight:900; letter-spacing:.3px">登入系統</h2>
-    <div class="muted" style="margin-bottom:14px">使用測試帳號登入。選擇角色可進入後台或一般功能頁。</div>
+    <div class="muted" style="margin-bottom:8px">選擇身分登入：住戶、管委會、廠商。</div>
 
-    <div class="row">
-      <md-outlined-text-field id="email" label="Email" value="test@example.com" style="flex:1 1 240px"></md-outlined-text-field>
-      <md-outlined-text-field id="password" label="密碼" type="password" value="123456" style="flex:1 1 160px"></md-outlined-text-field>
+    <div id="signedBanner" class="banner" style="display:none">
+      <span class="material-symbols-outlined">verified_user</span>
+      <div>
+        <div id="signedText">你目前已登入。</div>
+        <div class="muted" id="nextInfo" style="margin-top:2px"></div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <md-filled-tonal-button id="btnGo">直接前往</md-filled-tonal-button>
+        <md-outlined-button id="btnSignOut">登出</md-outlined-button>
+      </div>
     </div>
 
-    <div style="margin:10px 0 6px">角色</div>
-    <div class="row" role="radiogroup" aria-label="角色">
-      <md-filter-chip id="role_user" selected>一般使用者</md-filter-chip>
-      <md-filter-chip id="role_admin">Admin</md-filter-chip>
-      <md-filter-chip id="role_committee">Committee</md-filter-chip>
-    </div>
+    <form id="loginForm">
+      <div class="row">
+        <md-outlined-text-field id="email" label="Email*" value="test@example.com" style="flex:1 1 280px" required></md-outlined-text-field>
+        <md-outlined-text-field id="password" label="密碼*" type="password" value="123456" style="flex:1 1 200px" required></md-outlined-text-field>
+      </div>
 
-    <div class="row" style="margin-top:16px">
-      <md-filled-button id="btnLogin">
-        <span class="material-symbols-outlined" slot="icon">login</span>登入
-      </md-filled-button>
-      <md-outlined-button onclick="location.href='index.html'">
-        <span class="material-symbols-outlined" slot="icon">home</span>回首頁
-      </md-outlined-button>
-    </div>
+      <div style="margin:10px 0 6px">身分</div>
+      <div class="row" role="radiogroup" aria-label="身分">
+        <md-filter-chip id="role_resident" selected>住戶</md-filter-chip>
+        <md-filter-chip id="role_committee">管委會</md-filter-chip>
+        <md-filter-chip id="role_vendor">廠商</md-filter-chip>
+      </div>
 
-    <div class="muted" style="margin-top:16px" id="nextInfo"></div>
+      <div class="row" style="margin-top:16px">
+        <md-filled-button id="btnLogin" type="submit">
+          <span class="material-symbols-outlined" slot="icon">login</span>登入 / 變更身分
+        </md-filled-button>
+        <md-outlined-button type="button" onclick="location.href='index.html'">
+          <span class="material-symbols-outlined" slot="icon">home</span>回首頁
+        </md-outlined-button>
+      </div>
+      <div class="err" id="errMsg"></div>
+    </form>
   </div>
 
   <script src="index.js"></script>
   <script>
-    const q = parseQuery(location.search);
-    const next = decodeURIComponent(q.next || '') || '';
+    // next 僅允許相對路徑（用 index.js 的 toRelative）
+    const params  = new URLSearchParams(location.search);
+    const rawNext = params.get('next') || '';
+    const next    = rawNext ? toRelative(rawNext) : ''; // 關鍵
 
-    document.getElementById('nextInfo').textContent = next ? `登入後將前往：${next}` : '登入後將前往：app.html';
+    // 已登入不自動導走；顯示 Banner
+    const banner   = document.getElementById('signedBanner');
+    const signedTx = document.getElementById('signedText');
+    const nextInfo = document.getElementById('nextInfo');
+    const btnGo    = document.getElementById('btnGo');
+    const btnOut   = document.getElementById('btnSignOut');
 
-    // 若已登入，直接走轉向
     if (isLoggedIn()) {
-      redirectAfterLogin(next, getRole());
+      const map = { resident:'住戶', committee:'管委會', vendor:'廠商', guest:'訪客' };
+      signedTx.textContent = `你目前以「${map[getRole()]||'訪客'}」身分登入：${getUser()?.email||''}`;
+      nextInfo.textContent = next ? `目的頁：${next}` : '未指定目的頁，登入後將依身分自動帶位';
+      banner.style.display = '';
+      btnGo.addEventListener('click', ()=> redirectAfterLogin(next, getRole()));
+      btnOut.addEventListener('click', ()=> { clearUser(); location.reload(); });
     }
 
-    // 角色切換
+    // 單選 chips
     const chips = {
-      user: document.getElementById('role_user'),
-      admin: document.getElementById('role_admin'),
-      committee: document.getElementById('role_committee')
+      resident:  document.getElementById('role_resident'),
+      committee: document.getElementById('role_committee'),
+      vendor:    document.getElementById('role_vendor'),
     };
-    Object.entries(chips).forEach(([k,chip])=>{
+    Object.entries(chips).forEach(([k, chip])=>{
       chip.addEventListener('click', ()=>{
         Object.values(chips).forEach(c=>c.selected=false);
         chip.selected = true;
       });
     });
 
-    document.getElementById('btnLogin').addEventListener('click', ()=>{
+    // 表單送出
+    const form = document.getElementById('loginForm');
+    const err  = document.getElementById('errMsg');
+    form.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      err.style.display = 'none'; err.textContent = '';
+
       const email = document.getElementById('email').value.trim();
       const pwd   = document.getElementById('password').value;
-      const role  = chips.admin.selected ? 'admin' : (chips.committee.selected ? 'committee' : 'user');
+      const role  = chips.committee.selected ? 'committee' : (chips.vendor.selected ? 'vendor' : 'resident');
 
-      // 簡化驗證
-      if (!email) { alert('請輸入 Email'); return; }
-      if (!pwd)   { alert('請輸入密碼'); return; }
+      if (!email) { err.textContent = '請輸入 Email'; err.style.display='block'; return; }
+      if (!pwd)   { err.textContent = '請輸入密碼'; err.style.display='block'; return; }
 
-      setUser({ email, name: email.split('@')[0], role });
+      setUser({ email, name: email.split('@')[0], role, lastLoginAt: new Date().toISOString() });
       redirectAfterLogin(next, role);
     });
   </script>
