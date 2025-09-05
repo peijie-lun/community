@@ -146,39 +146,75 @@ function updateAuthUI() {
   if (logoutEl) logoutEl.style.display = isLoggedIn() ? "" : "none";
 }
 
-/* ============================ PWA 安裝（含 iOS 引導） ============================ */
+/* ============================ PWA 安裝（修正版） ============================ */
 function initPWA(buttonId = "installCta") {
-  const fab = document.getElementById(buttonId);
-  if (!fab) return;
+  const btn = document.getElementById(buttonId);
+  if (!btn) return;
 
+  // 1) 先註冊 SW（即使失敗也不擋 UI）
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});
   }
 
   let deferredPrompt = null;
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault(); deferredPrompt = e; fab.style.display = "";
-  });
 
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
-  if (isIOS && !isStandalone) fab.style.display = "";
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone;
 
-  fab.addEventListener("click", async () => {
-    if (deferredPrompt) {
-      try { await deferredPrompt.prompt()?.userChoice; } catch {}
-      deferredPrompt = null; fab.style.display = "none";
-    } else if (isIOS && !isStandalone) {
-      alert("iPhone / iPad 安裝：請在 Safari → 分享 → 加入主畫面。");
-    }
+  // 2) 只有在瀏覽器發出 beforeinstallprompt 時才顯示按鈕（iOS 例外）
+  window.addEventListener("beforeinstallprompt", (e) => {
+    // 重要：攔截預設，改為自訂 UI
+    e.preventDefault();
+    deferredPrompt = e;
+    btn.style.display = "";            // 顯示安裝按鈕
+    btn.removeAttribute("disabled");
+    btn.title = "安裝此應用";
   });
-  window.addEventListener("appinstalled", () => { deferredPrompt = null; fab.style.display = "none"; });
+
+  // iOS 沒有 beforeinstallprompt；用教學提示
+  if (isIOS && !isStandalone) btn.style.display = "";
+
+  // 3) 點擊行為：正確地先 prompt()，再等 userChoice
+  btn.addEventListener("click", async () => {
+    // file:// 無法安裝（SW/manifest 都不會生效）
+    if (location.protocol === "file:") {
+      alert("安裝需要從 http:// 或 https://（或 localhost）開啟，file:// 無法安裝。");
+      return;
+    }
+
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();                 // 叫出安裝視窗
+        const choice = await deferredPrompt.userChoice;  // 等使用者回應
+        if (choice?.outcome !== "dismissed") {
+          btn.style.display = "none";            // 安裝了，就收起按鈕
+        }
+      } catch (err) {
+        console.warn("PWA 安裝被攔截/失敗：", err);
+      } finally {
+        deferredPrompt = null;                   // 事件只能用一次
+      }
+      return;
+    }
+
+    if (isIOS && !isStandalone) {
+      alert("iPhone / iPad：請在 Safari → 分享 → 加入主畫面 以安裝。");
+      return;
+    }
+
+    // 其他情況（多半是瀏覽器沒給 BIP 事件）：給使用者導引
+    alert("請使用瀏覽器的「安裝」選項安裝（例如 Chrome 右上角的安裝圖示或選單 → 安裝）。");
+  });
+
+  // 4) 裝好後關閉按鈕
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt = null;
+    btn.style.display = "none";
+  });
 }
 
-function initPage(kind) {
-  updateAuthUI();
-  initPWA("installCta");
-}
 
 /* ============================ 工具 ============================ */
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
