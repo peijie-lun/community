@@ -8,47 +8,37 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-
-  <!-- Material Web -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
   <script type="module">import 'https://esm.run/@material/web/all.js';</script>
-
   <style>
     :root{ --container-w: min(1140px, calc(100vw - 24px)); }
     html,body{height:100%}
     body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial;}
     md-top-app-bar{ position: sticky; top: 0; z-index: 110; }
-    .app-shell{display:flex;flex-direction:column;min-height:100%}
     .container{width:var(--container-w);margin-inline:auto}
     .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
-    .tile{
-      position:relative;border-radius:18px;overflow:hidden;min-height:200px;color:#fff;
-      background-size:cover;background-position:center;cursor:pointer;
-      box-shadow:0 8px 24px rgba(0,0,0,.12);transition:transform .15s, box-shadow .15s, filter .15s
-    }
+    .tile{position:relative;border-radius:18px;overflow:hidden;min-height:200px;color:#fff;background-size:cover;background-position:center;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.12);transition:transform .15s, box-shadow .15s, filter .15s}
     .tile:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(0,0,0,.18); filter:saturate(1.05); }
     .tile::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.28))}
     .tile > .inner{position:relative;padding:22px;text-shadow:0 1px 2px rgba(0,0,0,.45)}
-    .tile .kicker{opacity:.95;font-weight:600;line-height:1.9}
     .badge{position:absolute;top:10px;right:10px;background:#FFD54F;color:#2b2b2b;border-radius:999px;padding:6px 10px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.14)}
-    .tile .title{font-size:22px;font-weight:900;letter-spacing:.3px;margin:4px 0 8px}
-    .tile .items{line-height:1.9;font-weight:600;opacity:.95}
+    .muted{opacity:.66}
     .panel{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
     .panel-body{padding:18px}
-    #installCta{ position:fixed; right:16px; bottom: calc(env(safe-area-inset-bottom) + 132px); z-index:1200; display:none; }
-    @media (max-width: 420px){ #installCta{ right:12px; bottom: calc(env(safe-area-inset-bottom) + 96px); } }
-    .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#eef3f3;color:#0a443f;padding:6px 10px;font-weight:700}
-    .muted{opacity:.66}
     .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     table{width:100%;border-collapse:collapse}
     th,td{padding:10px 12px;border-bottom:1px solid #eee}
     th{text-align:left;font-weight:800}
     tbody tr:hover{background:#fafafa}
   </style>
+  <script src="index.js"></script>
+  <script>
+    // 一進頁就硬性守門（僅管委會）
+    if (!ensureBackend()) { /* 已被導去登入或首頁 */ }
+  </script>
 </head>
-<body class="app-shell">
-
+<body>
   <md-top-app-bar id="topbar">
     <div slot="navigationIcon" style="padding-left:6px"><span class="material-symbols-outlined">apartment</span></div>
     <div slot="headline" style="font-weight:900;letter-spacing:.4px">社區客服系統 · 管理後台</div>
@@ -59,11 +49,15 @@
 
     <md-menu id="userMenu" anchor="userBtn">
       <md-menu-item disabled>
-        <div slot="headline" id="authName">管理者</div>
-        <div slot="supporting-text" id="authMail" class="muted">admin@example.com</div>
+        <div slot="headline" id="authName">使用者</div>
+        <div slot="supporting-text" id="authMail" class="muted">未登入</div>
       </md-menu-item>
       <md-divider></md-divider>
-      <md-menu-item onclick="logout()">
+      <md-menu-item id="menuLogin" onclick="gotoLogin('backend.html')" style="display:none">
+        <span slot="start" class="material-symbols-outlined">login</span>
+        <div slot="headline">登入（選擇身分）</div>
+      </md-menu-item>
+      <md-menu-item id="menuLogout" onclick="logout()">
         <span slot="start" class="material-symbols-outlined">logout</span>
         <div slot="headline">登出</div>
       </md-menu-item>
@@ -75,66 +69,28 @@
 
   <main class="container" style="padding:22px 0 28px">
     <div style="margin:8px 0 18px">
-      <h2 style="font-weight:900;letter-spacing:.3px;margin:0;display:flex;gap:12px;align-items:center">
-        管理項目
-        <span class="chip"><span class="material-symbols-outlined" style="font-size:18px">verified_user</span> Admin</span>
-      </h2>
-      <div class="muted" style="margin-top:6px">請選擇一個管理模組，或使用下方內頁工具列。</div>
+      <h2 style="font-weight:900;letter-spacing:.3px;margin:0">管理項目</h2>
+      <div class="muted" style="margin-top:6px">（本區僅限管委會使用）</div>
     </div>
 
     <section id="feature-grid" class="grid" aria-live="polite">
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1581090463728-28b1b3a4f50b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('announcement')">
-        <div class="badge">公告 / 投票</div>
-        <div class="inner">
-          <div class="kicker">🗳️ 公告 / 投票</div>
-          <div class="title">社區公告與投票</div>
-          <div class="items">新增公告 · 編輯 · 刪除 · 投票結果</div>
-        </div>
+        <div class="badge">公告 / 投票</div><div class="inner"><div class="title">社區公告與投票</div></div>
       </div>
-
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('maintenance')">
-        <div class="badge">維修 / 客服</div>
-        <div class="inner">
-          <div class="kicker">🛠️ 維修 / 客服</div>
-          <div class="title">設備維護與客服單</div>
-          <div class="items">新增維修 · 指派 · 進度 · 關單</div>
-        </div>
+        <div class="badge">維修 / 客服</div><div class="inner"><div class="title">設備維護與客服單</div></div>
       </div>
-
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('finance')">
-        <div class="badge">帳務 / 收費</div>
-        <div class="inner">
-          <div class="kicker">💵 帳務 / 收費</div>
-          <div class="title">管理費與收支</div>
-          <div class="items">費用清單 · 催繳 · 匯出 · 發票</div>
-        </div>
+        <div class="badge">帳務 / 收費</div><div class="inner"><div class="title">管理費與收支</div></div>
       </div>
-
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('resident')">
-        <div class="badge">住戶 / 人員</div>
-        <div class="inner">
-          <div class="kicker">🏷️ 住戶 / 人員</div>
-          <div class="title">住戶與社區人員</div>
-          <div class="items">住戶名冊 · 主委 / 管理員</div>
-        </div>
+        <div class="badge">住戶 / 人員</div><div class="inner"><div class="title">住戶與社區人員</div></div>
       </div>
-
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1529078146-58e3c81d4ebc?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('visitor')">
-        <div class="badge">訪客 / 包裹</div>
-        <div class="inner">
-          <div class="kicker">📦 訪客 / 包裹</div>
-          <div class="title">訪客與包裹</div>
-          <div class="items">進出紀錄 · 包裹領取</div>
-        </div>
+        <div class="badge">訪客 / 包裹</div><div class="inner"><div class="title">訪客與包裹</div></div>
       </div>
-
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('meeting')">
-        <div class="badge">會議 / 活動</div>
-        <div class="inner">
-          <div class="kicker">📝 會議 / 活動</div>
-          <div class="title">議程與活動</div>
-          <div class="items">會議紀錄 · 活動排程</div>
-        </div>
+        <div class="badge">會議 / 活動</div><div class="inner"><div class="title">議程與活動</div></div>
       </div>
     </section>
 
@@ -147,9 +103,6 @@
           <md-filled-tonal-button id="btnAdd" style="display:none">
             <span class="material-symbols-outlined" slot="icon">add</span>新增
           </md-filled-tonal-button>
-          <md-outlined-button id="btnExport" style="display:none">
-            <span class="material-symbols-outlined" slot="icon">ios_share</span>匯出
-          </md-outlined-button>
           <span id="tabHint" class="muted"></span>
         </div>
         <div id="tab-content"></div>
@@ -157,49 +110,56 @@
     </section>
   </main>
 
-  <!-- 安裝 App FAB -->
-  <md-fab id="installCta" label="安裝 App" variant="secondary">
-    <span class="material-symbols-outlined" slot="icon">download</span>
-  </md-fab>
-
-  <script src="index.js"></script>
   <script>
-    // 假資料
-    const demoAnnouncements=[{id:1,title:"停水通知",content:"8/25上午9~12點停水。",time:"2025-08-20",author:"李主委"}];
-    const demoMaintenances=[{id:1,equipment:"電梯",item:"年度保養",time:"2025-08-10",handler:"保養公司",cost:8000,note:"正常"}];
-    const demoFees=[{id:1,room:"A101",amount:1200,due:"2025-09-10",paid:false,invoice:"INV20250802"}];
-    const demoResidents=[{id:1,name:"王大明",room:"A101",phone:"0912-345678"}];
-    const demoVisitors=[{id:1,name:"陳訪客",room:"A101",in:"2025-08-22 10:00",out:"2025-08-22 11:00"}];
-    const demoMeetings=[{id:1,topic:"財務審查",time:"2025-08-18",location:"會議室"}];
-    const demoActivities=[{id:1,name:"中秋烤肉",time:"2025-09-15 18:00",location:"中庭"}];
-
-    ensureAdmin();  // 未通過會被導去 auth.html
-    initPage('admin');
+    initPage('backend');
 
     function backToGrid(){
       document.getElementById('feature-grid').style.display='';
       document.getElementById('btnBack').style.display='none';
       document.getElementById('btnAdd').style.display='none';
-      document.getElementById('btnExport').style.display='none';
       document.getElementById('tabHint').textContent='';
       document.getElementById('tab-content').innerHTML='';
       scrollTo({top:0, behavior:'smooth'});
     }
+    backToGrid();
 
+    let currentTab = '';
     function gotoTab(key){
-      if(!ensureAdmin()) return;
+      // 此頁已確保是管委會，直接顯示
+      currentTab = key;
       document.getElementById('feature-grid').style.display='none';
       document.getElementById('btnBack').style.display='';
       document.getElementById('btnAdd').style.display='';
-      document.getElementById('btnExport').style.display='';
       document.getElementById('tabHint').textContent = '當前模組：' + ({
-        announcement:'公告 / 投票',
-        maintenance:'維修 / 客服',
-        finance:'帳務 / 收費',
-        resident:'住戶 / 人員',
-        visitor:'訪客 / 包裹',
-        meeting:'會議 / 活動'
+        announcement:'公告 / 投票', maintenance:'維修 / 客服', finance:'帳務 / 收費',
+        resident:'住戶 / 人員', visitor:'訪客 / 包裹', meeting:'會議 / 活動'
       }[key] || key);
+
+      document.getElementById('btnAdd').onclick = () => {
+        // 新增只在後台，直接執行（已是管委會）
+        if (key==='announcement') {
+          const title = prompt('公告標題：'); if (!title) return;
+          Ann.create({ title, content:'' });
+        } else if (key==='maintenance') {
+          const item = prompt('維修項目：'); if (!item) return;
+          Maint.create({ equipment:'設備', item, handler:'', cost:0 });
+        } else if (key==='finance') {
+          const room = prompt('房號：'); if (!room) return;
+          const amount = Number(prompt('金額：')||0);
+          Fee.create({ room, amount, due:'' });
+        } else if (key==='resident') {
+          const name = prompt('姓名：'); if (!name) return;
+          const room = prompt('房號：')||'';
+          Resi.create({ name, room });
+        } else if (key==='visitor') {
+          const name = prompt('訪客姓名：'); if (!name) return;
+          const room = prompt('房號：')||'';
+          Visit.checkin({ name, room });
+        } else if (key==='meeting') {
+          const topic = prompt('會議主題：'); if (!topic) return;
+          Meet.create({ topic, time:'', location:'' });
+        }
+      };
 
       renderTabContent(key);
     }
@@ -207,79 +167,109 @@
     function renderTabContent(tab){
       const el = document.getElementById('tab-content');
       if(tab==='announcement'){
+        const rows = Ann.list();
         el.innerHTML = `
           <div style="overflow:auto">
             <table>
-              <thead><tr><th>標題</th><th>時間</th><th>作者</th></tr></thead>
-              <tbody>${demoAnnouncements.map(x=>`
-                <tr><td>${x.title}</td><td>${x.time}</td><td>${x.author}</td></tr>
+              <thead><tr><th>標題</th><th>時間</th><th>作者</th><th>投票</th><th>動作</th></tr></thead>
+              <tbody>${rows.map(x=>`
+                <tr>
+                  <td>${x.title}</td>
+                  <td>${(x.time||'').toString().slice(0,16).replace('T',' ')}</td>
+                  <td>${x.author||''}</td>
+                  <td>${(x.options||[]).map(o=>`${o}:${x.votes?.[o]||0}`).join(' / ')}</td>
+                  <td><md-text-button style="color:#b00020" onclick="(function(){ if(confirm('刪除此公告？')) Ann.remove('${x.id}'); })()">刪除</md-text-button></td>
+                </tr>
               `).join('')}</tbody>
             </table>
           </div>`;
-      }
-      else if(tab==='maintenance'){
+      } else if(tab==='maintenance'){
+        const rows = Maint.list();
         el.innerHTML = `
           <div style="overflow:auto">
             <table>
-              <thead><tr><th>設備</th><th>項目</th><th>時間</th><th>承辦</th><th>費用</th><th>備註</th></tr></thead>
-              <tbody>${demoMaintenances.map(x=>`
-                <tr><td>${x.equipment}</td><td>${x.item}</td><td>${x.time}</td><td>${x.handler}</td><td>$${x.cost}</td><td>${x.note||''}</td></tr>
+              <thead><tr><th>設備</th><th>項目</th><th>時間</th><th>承辦</th><th>費用</th><th>狀態</th><th>指派</th><th>動作</th></tr></thead>
+              <tbody>${rows.map(x=>`
+                <tr>
+                  <td>${x.equipment}</td><td>${x.item}</td><td>${x.time}</td>
+                  <td>${x.handler||''}</td><td>$${x.cost||0}</td><td>${x.status}</td><td>${x.assignee||''}</td>
+                  <td>
+                    <md-text-button onclick="Maint.setStatus('${x.id}','open')">開單</md-text-button>
+                    <md-text-button onclick="Maint.setStatus('${x.id}','progress')">處理中</md-text-button>
+                    <md-text-button onclick="Maint.setStatus('${x.id}','closed')">結案</md-text-button>
+                    <md-text-button onclick="(function(){ const p=prompt('指派對象：', '${x.assignee||''}'); if(p!=null) Maint.assign('${x.id}', p); })()">指派</md-text-button>
+                    <md-text-button style="color:#b00020" onclick="(function(){ if(confirm('刪除此工單？')) Maint.remove('${x.id}'); })()">刪除</md-text-button>
+                  </td>
+                </tr>
               `).join('')}</tbody>
             </table>
           </div>`;
-      }
-      else if(tab==='finance'){
+      } else if(tab==='finance'){
+        const rows = Fee.list();
         el.innerHTML = `
           <div style="overflow:auto">
             <table>
-              <thead><tr><th>房號</th><th>金額</th><th>到期</th><th>狀態</th><th>發票</th></tr></thead>
-              <tbody>${demoFees.map(x=>`
-                <tr><td>${x.room}</td><td>$${x.amount}</td><td>${x.due}</td><td>${x.paid?'已繳':'未繳'}</td><td>${x.invoice||''}</td></tr>
+              <thead><tr><th>房號</th><th>金額</th><th>到期</th><th>狀態</th><th>發票</th><th>動作</th></tr></thead>
+              <tbody>${rows.map(x=>`
+                <tr>
+                  <td>${x.room}</td><td>$${x.amount}</td><td>${x.due||''}</td><td>${x.paid?'已繳':'未繳'}</td><td>${x.invoice||''}</td>
+                  <td>
+                    <md-text-button onclick="(function(){ Fee.setPaid('${x.id}', ${!x.paid}); })()">${x.paid?'設為未繳':'設為已繳'}</md-text-button>
+                    <md-text-button style="color:#b00020" onclick="(function(){ if(confirm('刪除此費用？')) Fee.remove('${x.id}'); })()">刪除</md-text-button>
+                  </td>
+                </tr>
               `).join('')}</tbody>
             </table>
           </div>`;
-      }
-      else if(tab==='resident'){
+      } else if(tab==='resident'){
+        const rows = Resi.list();
         el.innerHTML = `
           <div style="overflow:auto">
             <table>
-              <thead><tr><th>姓名</th><th>房號</th><th>電話</th></tr></thead>
-              <tbody>${demoResidents.map(x=>`
-                <tr><td>${x.name}</td><td>${x.room}</td><td>${x.phone}</td></tr>
+              <thead><tr><th>姓名</th><th>房號</th><th>電話</th><th>Email</th><th>身分</th><th>動作</th></tr></thead>
+              <tbody>${rows.map(x=>`
+                <tr>
+                  <td>${x.name}</td><td>${x.room}</td><td>${x.phone||''}</td><td>${x.email||''}</td><td>${x.role||''}</td>
+                  <td><md-text-button style="color:#b00020" onclick="(function(){ if(confirm('刪除此住戶？')) Resi.remove('${x.id}'); })()">刪除</md-text-button></td>
+                </tr>
               `).join('')}</tbody>
             </table>
           </div>`;
-      }
-      else if(tab==='visitor'){
+      } else if(tab==='visitor'){
+        const rows = Visit.list();
         el.innerHTML = `
           <div style="overflow:auto">
             <table>
-              <thead><tr><th>姓名</th><th>房號</th><th>進場</th><th>離場</th></tr></thead>
-              <tbody>${demoVisitors.map(x=>`
-                <tr><td>${x.name}</td><td>${x.room}</td><td>${x.in}</td><td>${x.out||''}</td></tr>
+              <thead><tr><th>姓名</th><th>房號</th><th>進場</th><th>離場</th><th>動作</th></tr></thead>
+              <tbody>${rows.map(x=>`
+                <tr>
+                  <td>${x.name}</td><td>${x.room}</td><td>${x.in||''}</td><td>${x.out||''}</td>
+                  <td>
+                    ${x.out ? '' : `<md-text-button onclick="Visit.checkout('${x.id}')">簽出</md-text-button>`}
+                    <md-text-button style="color:#b00020" onclick="(function(){ if(confirm('刪除此紀錄？')) Visit.remove('${x.id}'); })()">刪除</md-text-button>
+                  </td>
+                </tr>
               `).join('')}</tbody>
             </table>
           </div>`;
-      }
-      else if(tab==='meeting'){
+      } else if(tab==='meeting'){
+        const rows = Meet.list();
         el.innerHTML = `
           <div style="overflow:auto">
             <table>
-              <thead><tr><th>主題</th><th>時間</th><th>地點</th></tr></thead>
-              <tbody>${demoMeetings.map(x=>`
-                <tr><td>${x.topic||x.name}</td><td>${x.time}</td><td>${x.location}</td></tr>
+              <thead><tr><th>主題</th><th>時間</th><th>地點</th><th>備註</th><th>動作</th></tr></thead>
+              <tbody>${rows.map(x=>`
+                <tr>
+                  <td>${x.topic||x.name}</td><td>${x.time||''}</td><td>${x.location||''}</td><td>${x.notes||''}</td>
+                  <td><md-text-button style="color:#b00020" onclick="(function(){ if(confirm('刪除此會議？')) Meet.remove('${x.id}'); })()">刪除</md-text-button></td>
+                </tr>
               `).join('')}</tbody>
             </table>
-          </div>
-          <div style="margin-top:12px" class="muted">活動：${demoActivities.map(a=>`${a.name}（${a.time}@${a.location}）`).join('、')}</div>`;
-      }
-      else{
+          </div>`;
+      } else {
         el.innerHTML = `<div class="muted">未支援的模組：${tab}</div>`;
       }
     }
-
-    // 預設顯示卡片列表
-    backToGrid();
   </script>
 </body>
 </html>
