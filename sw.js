@@ -1,5 +1,5 @@
 // sw.js (robust)
-const CACHE_VER = 'v9';
+const CACHE_VER = 'v10';
 const CACHE_NAME = `kms-${CACHE_VER}`;
 const CORE_ASSETS = [
   './',
@@ -32,9 +32,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(
-      keys
-        .filter(k => k.startsWith('kms-') && k !== CACHE_NAME)
-        .map(k => caches.delete(k))
+      keys.filter(k => k.startsWith('kms-') && k !== CACHE_NAME)
+          .map(k => caches.delete(k))
     );
     await self.clients.claim();
   })());
@@ -48,7 +47,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET' || url.origin !== location.origin) return;
 
   // HTML：network-first，離線回退快取
-  if (req.headers.get('accept') && req.headers.get('accept').includes('text/html')) {
+  if (req.headers.get('accept')?.includes('text/html')) {
     event.respondWith((async () => {
       try {
         const fresh = await fetch(req);
