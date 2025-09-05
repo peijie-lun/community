@@ -2,813 +2,389 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>社區客服系統 Demo｜管理後台</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>社區客服系統 · 管理後台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a443f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <!-- Material Web -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
+  <script type="module">import 'https://esm.run/@material/web/all.js';</script>
 
   <style>
-  :root{ --teal:#00A399; }
-  body{ background:#f7f8fa; }
+    :root{ --container-w: min(1140px, calc(100vw - 24px)); }
+    html,body{height:100%}
+    body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial;}
 
-  .navbar-brand { font-weight: 800; letter-spacing:.5px; }
+    /* App Bar */
+    md-top-app-bar{ position: sticky; top: 0; z-index: 110; }
 
-  .tile{
-    position:relative; display:block; border:0; border-radius:18px;
-    padding:24px; min-height:200px; background-size:cover; background-position:center;
-    overflow:hidden; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.25);
-    box-shadow:0 10px 24px rgba(0,0,0,.08); cursor:pointer;
-    transition:transform .15s, box-shadow .15s, filter .15s;
-  }
-  .tile:hover{ transform:translateY(-2px); box-shadow:0 16px 36px rgba(0,0,0,.14); filter:saturate(1.05); }
-  .tile-overlay{ position:absolute; inset:0; background:rgba(0,163,153,.88); } /* 與前台同步的綠色疊色 */
-  .tile-items{ line-height:1.9; font-weight:600; opacity:.98; }
+    /* Layout */
+    .app-shell{display:flex;flex-direction:column;min-height:100%}
+    .container{width:var(--container-w);margin-inline:auto}
 
-  /* Toast container */
-  #toastBox .alert{ margin-bottom:.5rem; }
-</style>
+    /* Grid Cards（與前台一致風格） */
+    .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+    .tile{
+      position:relative;border-radius:18px;overflow:hidden;min-height:200px;color:#fff;
+      background-size:cover;background-position:center;cursor:pointer;
+      box-shadow:0 8px 24px rgba(0,0,0,.12);transition:transform .15s, box-shadow .15s, filter .15s
+    }
+    .tile:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(0,0,0,.18); filter:saturate(1.05); }
+    .tile::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.28))}
+    .tile > .inner{position:relative;padding:22px;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+    .tile .kicker{opacity:.95;font-weight:600;line-height:1.9}
+    .badge{position:absolute;top:10px;right:10px;background:#FFD54F;color:#2b2b2b;border-radius:999px;padding:6px 10px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+    .tile .title{font-size:22px;font-weight:900;letter-spacing:.3px;margin:4px 0 8px}
+    .tile .items{line-height:1.9;font-weight:600;opacity:.95}
 
+    /* 面板（內頁容器） */
+    .panel{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
+    .panel-body{padding:18px}
+
+    /* 安裝 FAB 位置（與前台一致） */
+    #installCta{ position:fixed; right:16px; bottom: calc(env(safe-area-inset-bottom) + 132px); z-index:1200; display:none; }
+    @media (max-width: 420px){ #installCta{ right:12px; bottom: calc(env(safe-area-inset-bottom) + 96px); } }
+
+    /* 小徽章 */
+    .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#eef3f3;color:#0a443f;padding:6px 10px;font-weight:700}
+    .muted{opacity:.66}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 12px;border-bottom:1px solid #eee}
+    th{text-align:left;font-weight:800}
+    tbody tr:hover{background:#fafafa}
+  </style>
 </head>
-<body>
+<body class="app-shell">
 
-<nav class="navbar navbar-expand-lg bg-white border-bottom">
-  <div class="container">
-    <a class="navbar-brand" href="#!" onclick="backHome()">管理後台</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+  <!-- ===== Top App Bar（與前台一致風格） ===== -->
+  <md-top-app-bar id="topbar">
+    <div slot="navigationIcon" style="padding-left:6px"><span class="material-symbols-outlined">apartment</span></div>
+    <div slot="headline" style="font-weight:900;letter-spacing:.4px">社區客服系統 · 管理後台</div>
 
-    <div class="collapse navbar-collapse" id="topNav">
-      <ul class="navbar-nav ms-3">
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">📢 公告 / 投票</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('announcement')">公告管理</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('vote')">投票管理</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">🛠️ 維修與客服</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('repair')">報修派工</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('maintenance')">維修保養紀錄</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('qa')">客服問答</a></li>
-          </ul>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">💰 財務 / 住戶</a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('fee')">管理費</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('expenditure')">財務支出</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('resident')">住戶資料</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('staff')">主委、清潔人員</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('visitor')">訪客紀錄</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('parcel')">信件包裹</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('meeting')">會議紀錄</a></li>
-            <li><a class="dropdown-item" href="#!" onclick="gotoTab('activity')">活動時程</a></li>
-          </ul>
-        </li>
-      </ul>
+    <!-- 回前台 -->
+    <md-icon-button id="goFront" slot="actionItems" aria-label="回前台" title="回前台" onclick="location.href='index.html'">
+      <span class="material-symbols-outlined">home</span>
+    </md-icon-button>
 
-      <div class="ms-auto d-flex align-items-center gap-2">
-        <a class="text-decoration-none" href="index.html">← 回前台</a>
+    <!-- 使用者選單 -->
+    <md-menu id="userMenu" anchor="userBtn">
+      <md-menu-item disabled>
+        <div slot="headline" id="authName">使用者</div>
+        <div slot="supporting-text" id="authMail" class="muted">user@example.com</div>
+      </md-menu-item>
+      <md-divider></md-divider>
+      <md-menu-item onclick="logout()">
+        <span slot="start" class="material-symbols-outlined">logout</span>
+        <div slot="headline">登出</div>
+      </md-menu-item>
+    </md-menu>
+    <md-icon-button id="userBtn" slot="actionItems" aria-label="帳號" title="帳號" onclick="userMenu.show()">
+      <span class="material-symbols-outlined">account_circle</span>
+    </md-icon-button>
+  </md-top-app-bar>
 
-        <div id="authCta" class="d-flex gap-2">
-          <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuth('login')">登入</button>
-          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#authModal" onclick="switchAuth('register')">註冊</button>
-        </div>
-
-        <div id="authUser" class="dropdown d-none">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-            <span id="authName">管理者</span>
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><h6 class="dropdown-header" id="authMail">admin@example.com</h6></li>
-            <li><a class="dropdown-item" href="#!" data-bs-toggle="modal" data-bs-target="#profileModal">修改資料</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="#!" onclick="logout()">登出</a></li>
-          </ul>
-        </div>
-      </div>
+  <!-- ===== Main ===== -->
+  <main class="container" style="padding:22px 0 28px">
+    <div style="margin:8px 0 18px">
+      <h2 style="font-weight:900;letter-spacing:.3px;margin:0;display:flex;gap:12px;align-items:center">
+        管理項目
+        <span class="chip"><span class="material-symbols-outlined" style="font-size:18px">verified_user</span> Admin</span>
+      </h2>
+      <div class="muted" style="margin-top:6px">請選擇一個管理模組，或使用下方內頁工具列。</div>
     </div>
-  </div>
-</nav>
 
-<div class="container py-4">
-  <!-- bannerBox will be injected here -->
-  <div class="text-center mb-4">
-    <h2 class="fw-bold display-6">後台主控台</h2>
-    <div class="text-muted">（需要 admin 或 committee 權限）</div>
-  </div>
-
-  <!-- 快速功能卡 -->
-  <div class="row g-4 mb-4" id="feature-grid"></div>
-
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div id="tab-content"><!-- JS 注入 --></div>
-    </div>
-  </div>
-</div>
-
-<!-- 登入/註冊 Modal -->
-<div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 id="authTitle" class="modal-title">登入</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <!-- 登入 -->
-        <div id="loginForm">
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input id="loginEmail" type="email" class="form-control" placeholder="name@example.com">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">密碼</label>
-            <input id="loginPwd" type="password" class="form-control" placeholder="至少 6 碼">
-          </div>
-          <div class="row g-2">
-            <div class="col-6">
-              <label class="form-label">角色（Demo）</label>
-              <select id="loginRole" class="form-select">
-                <option value="admin">管理員</option>
-                <option value="committee">管委會</option>
-                <option value="resident">住戶</option>
-                <option value="vendor">廠商</option>
-              </select>
-            </div>
-            <div class="col-6 d-none" id="loginVendorWrap">
-              <label class="form-label">公司名稱</label>
-              <input id="loginVendor" class="form-control" placeholder="例：水電小王子">
-            </div>
-          </div>
-          <button class="btn btn-primary w-100 mt-3" onclick="handleLogin()">登入</button>
-          <div class="mt-2 small text-muted">測試帳密：test@example.com / 123456</div>
-        </div>
-
-        <!-- 註冊 -->
-        <div id="registerForm" class="d-none">
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input id="regEmail" type="email" class="form-control" placeholder="name@example.com">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">顯示名稱</label>
-            <input id="regName" type="text" class="form-control" placeholder="王小明">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">密碼</label>
-            <input id="regPwd" type="password" class="form-control" placeholder="至少 6 碼">
-          </div>
-          <div class="row g-2">
-            <div class="col-6">
-              <label class="form-label">角色（Demo）</label>
-              <select id="regRole" class="form-select">
-                <option value="admin">管理員</option>
-                <option value="committee">管委會</option>
-                <option value="resident">住戶</option>
-                <option value="vendor">廠商</option>
-              </select>
-            </div>
-            <div class="col-6 d-none" id="regVendorWrap">
-              <label class="form-label">公司名稱</label>
-              <input id="regVendor" class="form-control" placeholder="例：水電小王子">
-            </div>
-          </div>
-          <button class="btn btn-success w-100 mt-3" onclick="handleRegister()">建立帳號</button>
+    <!-- 模組卡片（與前台一致結構） -->
+    <section id="feature-grid" class="grid" aria-live="polite">
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1581090463728-28b1b3a4f50b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('announcement')">
+        <div class="badge">公告 / 投票</div>
+        <div class="inner">
+          <div class="kicker">🗳️ 公告 / 投票</div>
+          <div class="title">社區公告與投票</div>
+          <div class="items">新增公告 · 編輯 · 刪除 · 投票結果</div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button id="switchAuthBtn" class="btn btn-link" onclick="toggleAuth()">切換到註冊</button>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- 修改資料 Modal -->
-<div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">修改資料</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">Email（不可修改）</label>
-          <input id="pfEmail" type="email" class="form-control" disabled>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">顯示名稱</label>
-          <input id="pfName" type="text" class="form-control" placeholder="您的名稱">
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('maintenance')">
+        <div class="badge">維修 / 客服</div>
+        <div class="inner">
+          <div class="kicker">🛠️ 維修 / 客服</div>
+          <div class="title">設備維護與客服單</div>
+          <div class="items">新增維修 · 指派 · 進度 · 關單</div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-        <button class="btn btn-primary" onclick="saveProfile()">儲存</button>
+
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('finance')">
+        <div class="badge">帳務 / 收費</div>
+        <div class="inner">
+          <div class="kicker">💵 帳務 / 收費</div>
+          <div class="title">管理費與收支</div>
+          <div class="items">費用清單 · 催繳 · 匯出 · 發票</div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
 
-<script>
-/* ====== 共用：安全解析、Toast、Banner、儲存器 ====== */
-function safeParse(raw, fallback){
-  try{
-    if(typeof raw !== 'string') return fallback;
-    return JSON.parse(raw);
-  }catch(e){ return fallback; }
-}
-function toast(msg, type='success', ms=2400){
-  let box = document.getElementById('toastBox');
-  if(!box){
-    box = document.createElement('div');
-    box.id = 'toastBox';
-    box.style.position='fixed';
-    box.style.top='14px';
-    box.style.left='50%';
-    box.style.transform='translateX(-50%)';
-    box.style.zIndex='2000';
-    document.body.appendChild(box);
-  }
-  const el = document.createElement('div');
-  el.className = `alert alert-${type} shadow-sm py-2 px-3`;
-  el.textContent = msg;
-  box.appendChild(el);
-  setTimeout(()=>{ el.remove(); if(!box.children.length) box.remove(); }, ms);
-}
-function banner(msg='', type='danger'){
-  let b = document.getElementById('bannerBox');
-  if(!b){
-    b = document.createElement('div');
-    b.id='bannerBox';
-    const container = document.querySelector('.container');
-    container?.insertBefore(b, container.firstChild);
-  }
-  b.innerHTML = msg ? `<div class="alert alert-${type}">載入卡片時發生錯誤：${msg}</div>` : '';
-}
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('resident')">
+        <div class="badge">住戶 / 人員</div>
+        <div class="inner">
+          <div class="kicker">🏷️ 住戶 / 人員</div>
+          <div class="title">住戶與社區人員</div>
+          <div class="items">住戶名冊 · 主委 / 管理員</div>
+        </div>
+      </div>
 
-const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
-const load = (k,def)=> safeParse(localStorage.getItem(k), def);
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1529078146-58e3c81d4ebc?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('visitor')">
+        <div class="badge">訪客 / 包裹</div>
+        <div class="inner">
+          <div class="kicker">📦 訪客 / 包裹</div>
+          <div class="title">訪客與包裹</div>
+          <div class="items">進出紀錄 · 包裹領取</div>
+        </div>
+      </div>
 
-/* ====== 假資料（與前台一致） ====== */
-const demoResidents = [
-  { id: 1, name: "王大明", room: "A101", phone: "0912-345678", car: "ABC-1234", moveIn: "2021-09-01", family: "王太太、王小明" },
-  { id: 2, name: "林小美", room: "A102", phone: "0922-222222", car: "XYZ-5678", moveIn: "2023-06-15", family: "林爸爸、林媽媽" },
-];
-const demoStaff = [
-  { id: 1, name: "李主委", role: "主委", phone: "0933-111111" },
-  { id: 2, name: "陳清潔", role: "清潔人員", phone: "0933-222222" },
-];
-const demoVisitors = [
-  { id: 1, name: "陳訪客", idCard: "A123456789", room: "A101", in: "2025-08-22 10:00", out: "2025-08-22 11:00", note: "送文件" },
-];
-const demoFees = [
-  { id: 1, room: "A101", amount: 1200, due: "2025-09-10", paid: true, invoice: "INV20250801" },
-  { id: 2, room: "A102", amount: 1200, due: "2025-09-10", paid: false, invoice: "INV20250802" },
-];
-const demoAnnouncements = [
-  { id: 1, title: "停水通知", content: "8/25上午9~12點停水。", time: "2025-08-20", author: "李主委", attachment: "" },
-];
-const demoActivities = [
-  { id: 1, name: "中秋烤肉", time: "2025-09-15 18:00", location: "中庭", signup: "現場報名", organizer: "王大明" },
-];
-const demoMaintenances = [
-  { id: 1, equipment: "電梯", item: "年度保養", time: "2025-08-10", handler: "保養公司", cost: 8000, note: "正常" },
-];
-const demoQA = [
-  { id: 1, room: "A101", q: "垃圾怎麼分類？", a: "請依公告分類", status: "已回覆", time: "2025-08-19" },
-];
-const demoMeetings = [
-  { id: 1, topic: "財務審查", time: "2025-08-18", location: "會議室", participants: "主委、住戶代表", record: "討論收支", resolution: "通過" },
-];
-const demoExpenditures = [
-  { id: 1, item: "清潔用品", amount: 1500, date: "2025-08-12", purpose: "大樓清潔", proof: "收據" },
-];
-const demoParcels = [
-  { id: 1, receiver: "王大明", room: "A101", code: "PKG12345", arrival: "2025-08-21 14:00", received: true },
-];
-const demoRepairs = [
-  { id: 'R_demo1', room: "A101", item: "水龍頭漏水", desc: "廚房水龍頭持續滴水", time: "2025-08-21 10:20",
-    status: "ASSIGNED", createdBy:"a101@demo", assigneeVendor:"水電小王子", photos:[], progress:[] },
-];
-const demoVotes = [
-  { id:'V_demo1', title:'是否汰換大門指紋辨識主機？',
-    options:['同意','不同意','保留，需更多資訊'], deadline:'2025-09-30 23:59',
-    status:'OPEN', createdAt:'2025-08-20 09:00', createdBy:'committee@demo', responses:[] }
-];
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('meeting')">
+        <div class="badge">會議 / 活動</div>
+        <div class="inner">
+          <div class="kicker">📝 會議 / 活動</div>
+          <div class="title">議程與活動</div>
+          <div class="items">會議紀錄 · 活動排程</div>
+        </div>
+      </div>
+    </section>
 
-/* ====== tabs / cards ====== */
-const tabs = [
-  { key:"resident", label:"住戶資料" },
-  { key:"staff", label:"主委、清潔人員資料" },
-  { key:"visitor", label:"訪客紀錄" },
-  { key:"fee", label:"管理費" },
-  { key:"announcement", label:"社區公告" },
-  { key:"vote", label:"社區投票" },
-  { key:"activity", label:"社區活動時程" },
-  { key:"repair", label:"報修申請" },
-  { key:"maintenance", label:"維修、保養紀錄" },
-  { key:"qa", label:"客服問答" },
-  { key:"meeting", label:"會議紀錄" },
-  { key:"expenditure", label:"財務支出" },
-  { key:"parcel", label:"信件包裹" },
-];
-const cards = [
-  ["resident","住戶資料","基本資料 ｜ 住戶聯絡 ｜ 車位 ｜ 家庭成員","https://images.unsplash.com/photo-1581091215367-59ab6b3d6321?q=80&w=1600&auto=format&fit=crop"],
-  ["staff","主委、清潔人員資料","主委 ｜ 清潔人員","https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=1600&auto=format&fit=crop"],
-  ["visitor","訪客紀錄","訪客登記 ｜ 到離紀錄","https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1600&auto=format&fit=crop"],
-  ["fee","管理費","金額 ｜ 到期日 ｜ 發票","https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1600&auto=format&fit=crop"],
-  ["announcement","社區公告","停水停電 ｜ 區務通知","https://images.unsplash.com/photo-1529336953121-ad5a0d43d0d2?q=80&w=1600&auto=format&fit=crop"],
-  ["vote","社區投票","社區提案 ｜ 線上投票","https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1600&auto=format&fit=crop"],
-  ["activity","社區活動時程","活動資訊 ｜ 報名方式","https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?q=80&w=1600&auto=format&fit=crop"],
-  ["repair","報修申請","線上報修 ｜ 進度追蹤","https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1600&auto=format&fit=crop"],
-  ["maintenance","維修、保養紀錄","設備 ｜ 項目 ｜ 花費","https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1600&auto=format&fit=crop"],
-  ["qa","客服問答","提問回覆 ｜ 處理狀態","https://images.unsplash.com/photo-1525186402429-b4ff38bedbec?q=80&w=1600&auto=format&fit=crop"],
-  ["meeting","會議紀錄","主題 ｜ 決議事項","https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1600&auto=format&fit=crop"],
-  ["expenditure","財務支出","項目 ｜ 金額 ｜ 憑證","https://images.unsplash.com/photo-1521540216272-a50305cd4421?q=80&w=1600&auto=format&fit=crop"],
-  ["parcel","信件包裹","收發件 ｜ 取件碼","https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?q=80&w=1600&auto=format&fit=crop"],
-];
+    <!-- 內頁面板 -->
+    <section class="panel" style="margin-top:18px">
+      <div class="panel-body">
+        <div class="toolbar" style="margin-bottom:10px">
+          <md-filled-button id="btnBack" leading-icon="arrow_back" onclick="backToGrid()" style="display:none">
+            <span class="material-symbols-outlined" slot="icon">arrow_back</span>返回模組列表
+          </md-filled-button>
+          <md-filled-tonal-button id="btnAdd" style="display:none">
+            <span class="material-symbols-outlined" slot="icon">add</span>新增
+          </md-filled-tonal-button>
+          <md-outlined-button id="btnExport" style="display:none">
+            <span class="material-symbols-outlined" slot="icon">ios_share</span>匯出
+          </md-outlined-button>
+          <span id="tabHint" class="muted"></span>
+        </div>
+        <div id="tab-content"></div>
+      </div>
+    </section>
+  </main>
 
-/* ====== localStorage Keys 與基本方法 ====== */
-const AUTH_KEY="demo_auth_user";
-const LSK = { repairs:"kms_repairs", announcements:"kms_ann", fees:"kms_fees", votes:"kms_votes" };
-const getUser =()=>safeParse(localStorage.getItem(AUTH_KEY), null);
-const setUser =u=>localStorage.setItem(AUTH_KEY, JSON.stringify(u));
-const clearUser=()=>localStorage.removeItem(AUTH_KEY);
-const isLoggedIn=()=>!!localStorage.getItem(AUTH_KEY);
-const getRole =()=> (getUser()?.role)||"guest";
-const gid=(p)=> p+Math.random().toString(36).slice(2,8);
-let activeTab=null;
+  <!-- 安裝 App FAB（與前台一致） -->
+  <md-fab id="installCta" label="安裝 App" variant="secondary">
+    <span class="material-symbols-outlined" slot="icon">download</span>
+  </md-fab>
 
-/* ====== 初始寫入 ====== */
-if(!localStorage.getItem(LSK.repairs)) save(LSK.repairs, demoRepairs);
-if(!localStorage.getItem(LSK.announcements)) save(LSK.announcements, demoAnnouncements);
-if(!localStorage.getItem(LSK.fees)) save(LSK.fees, demoFees);
-if(!localStorage.getItem(LSK.votes)) save(LSK.votes, demoVotes);
+  <script>
+    /* ========= 假資料（簡化版） ========= */
+    const demoAnnouncements=[{id:1,title:"停水通知",content:"8/25上午9~12點停水。",time:"2025-08-20",author:"李主委"}];
+    const demoMaintenances=[{id:1,equipment:"電梯",item:"年度保養",time:"2025-08-10",handler:"保養公司",cost:8000,note:"正常"}];
+    const demoFees=[{id:1,room:"A101",amount:1200,due:"2025-09-10",paid:false,invoice:"INV20250802"}];
+    const demoResidents=[{id:1,name:"王大明",room:"A101",phone:"0912-345678"}];
+    const demoVisitors=[{id:1,name:"陳訪客",room:"A101",in:"2025-08-22 10:00",out:"2025-08-22 11:00"}];
+    const demoMeetings=[{id:1,topic:"財務審查",time:"2025-08-18",location:"會議室"}];
+    const demoActivities=[{id:1,name:"中秋烤肉",time:"2025-09-15 18:00",location:"中庭"}];
 
-/* ====== 首頁卡片 ====== */
-function renderCards(){
-  const grid=document.getElementById('feature-grid');
-  try{
-    const list = Array.isArray(cards)?cards:[];
-    grid.innerHTML = list.map(([key,title,items,bg])=>`
-      <div class="col-12 col-md-6 col-lg-4">
-        <button class="tile w-100 text-start position-relative" style="background-image:url('${bg}')" onclick="gotoTab('${key}')">
-          <div class="tile-overlay"></div>
-          <div class="position-relative">
-            <div class="h5 fw-bold mb-2 text-white">${title}</div>
-            <div class="tile-items">${items}</div>
+    /* ========= 儲存器 / 登入狀態 ========= */
+    const STORE_KEY = 'kms_user';
+    function getUser(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'null'); }catch(e){ return null; } }
+    function setUser(u){ localStorage.setItem(STORE_KEY, JSON.stringify(u||{})); }
+    function clearUser(){ localStorage.removeItem(STORE_KEY); }
+    function isLoggedIn(){ return !!getUser(); }
+    function getRole(){ return (getUser()||{}).role || 'user'; }
+
+    function ensureAdmin(){
+      const role = getRole();
+      if (isLoggedIn() && (role==='admin' || role==='committee')) return true;
+      const next = encodeURIComponent('backend.html');
+      location.href = `auth.html?next=${next}`;
+      return false;
+    }
+
+    /* ========= UI ========= */
+    function updateAuthUI(){
+      const u=getUser()||{};
+      document.getElementById('authName').textContent = u.name || u.email || '管理者';
+      document.getElementById('authMail').textContent = u.email || 'admin@example.com';
+    }
+
+    function logout(){
+      clearUser();
+      // 小提示：這裡可換成 Snackbar；先用 alert 簡化
+      // alert('已登出');
+      setTimeout(()=>{ location.replace('index.html'); }, 300);
+    }
+
+    /* ========= 模組渲染 ========= */
+    let activeTab = null;
+
+    function backToGrid(){
+      activeTab = null;
+      document.getElementById('feature-grid').style.display='';
+      document.getElementById('btnBack').style.display='none';
+      document.getElementById('btnAdd').style.display='none';
+      document.getElementById('btnExport').style.display='none';
+      document.getElementById('tabHint').textContent='';
+      document.getElementById('tab-content').innerHTML='';
+      scrollTo({top:0, behavior:'smooth'});
+    }
+
+    function gotoTab(key){
+      if(!ensureAdmin()) return;
+      activeTab = key;
+      document.getElementById('feature-grid').style.display='none';
+      document.getElementById('btnBack').style.display='';
+      document.getElementById('btnAdd').style.display='';
+      document.getElementById('btnExport').style.display='';
+      document.getElementById('tabHint').textContent = '當前模組：' + ({
+        announcement:'公告 / 投票',
+        maintenance:'維修 / 客服',
+        finance:'帳務 / 收費',
+        resident:'住戶 / 人員',
+        visitor:'訪客 / 包裹',
+        meeting:'會議 / 活動'
+      }[key] || key);
+
+      renderTabContent();
+    }
+
+    function renderTabContent(){
+      const el = document.getElementById('tab-content');
+      if(!activeTab){ el.innerHTML=''; return; }
+
+      if(activeTab==='announcement'){
+        el.innerHTML = `
+          <div class="toolbar">
+            <md-outlined-text-field id="q1" label="搜尋標題" type="search"></md-outlined-text-field>
           </div>
-        </button>
-      </div>`).join('');
-    banner('', '');
-  }catch(err){
-    console.error('[renderCards] fail:', err);
-    grid.innerHTML='';
-    banner(err.message || String(err), 'danger');
-  }
-}
-function backHome(){
-  document.getElementById('feature-grid').classList.remove('d-none');
-  document.getElementById('tab-content').innerHTML = '';
-  activeTab = null;
-  renderCards();
-}
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>標題</th><th>時間</th><th>作者</th></tr></thead>
+              <tbody>${demoAnnouncements.map(x=>`
+                <tr><td>${x.title}</td><td>${x.time}</td><td>${x.author}</td></tr>
+              `).join('')}</tbody>
+            </table>
+          </div>`;
+      }
+      else if(activeTab==='maintenance'){
+        el.innerHTML = `
+          <div class="toolbar">
+            <md-outlined-text-field id="q2" label="設備 / 項目" type="search"></md-outlined-text-field>
+          </div>
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>設備</th><th>項目</th><th>時間</th><th>承辦</th><th>費用</th><th>備註</th></tr></thead>
+              <tbody>${demoMaintenances.map(x=>`
+                <tr><td>${x.equipment}</td><td>${x.item}</td><td>${x.time}</td><td>${x.handler}</td><td>$${x.cost}</td><td>${x.note||''}</td></tr>
+              `).join('')}</tbody>
+            </table>
+          </div>`;
+      }
+      else if(activeTab==='finance'){
+        el.innerHTML = `
+          <div class="toolbar">
+            <md-outlined-text-field id="q3" label="房號" type="search"></md-outlined-text-field>
+          </div>
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>房號</th><th>金額</th><th>到期</th><th>狀態</th><th>發票</th></tr></thead>
+              <tbody>${demoFees.map(x=>`
+                <tr><td>${x.room}</td><td>$${x.amount}</td><td>${x.due}</td><td>${x.paid?'已繳':'未繳'}</td><td>${x.invoice||''}</td></tr>
+              `).join('')}</tbody>
+            </table>
+          </div>`;
+      }
+      else if(activeTab==='resident'){
+        el.innerHTML = `
+          <div class="toolbar">
+            <md-outlined-text-field id="q4" label="姓名 / 房號" type="search"></md-outlined-text-field>
+          </div>
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>姓名</th><th>房號</th><th>電話</th></tr></thead>
+              <tbody>${demoResidents.map(x=>`
+                <tr><td>${x.name}</td><td>${x.room}</td><td>${x.phone}</td></tr>
+              `).join('')}</tbody>
+            </table>
+          </div>`;
+      }
+      else if(activeTab==='visitor'){
+        el.innerHTML = `
+          <div class="toolbar">
+            <md-outlined-text-field id="q5" label="姓名 / 房號" type="search"></md-outlined-text-field>
+          </div>
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>姓名</th><th>房號</th><th>進場</th><th>離場</th></tr></thead>
+              <tbody>${demoVisitors.map(x=>`
+                <tr><td>${x.name}</td><td>${x.room}</td><td>${x.in}</td><td>${x.out||''}</td></tr>
+              `).join('')}</tbody>
+            </table>
+          </div>`;
+      }
+      else if(activeTab==='meeting'){
+        el.innerHTML = `
+          <div class="toolbar">
+            <md-outlined-text-field id="q6" label="主題 / 地點" type="search"></md-outlined-text-field>
+          </div>
+          <div style="overflow:auto">
+            <table>
+              <thead><tr><th>主題</th><th>時間</th><th>地點</th></tr></thead>
+              <tbody>${demoMeetings.map(x=>`
+                <tr><td>${x.topic||x.name}</td><td>${x.time}</td><td>${x.location}</td></tr>
+              `).join('')}</tbody>
+            </table>
+          </div>
+          <div style="margin-top:12px" class="muted">活動：${demoActivities.map(a=>`${a.name}（${a.time}@${a.location}）`).join('、')}</div>`;
+      }
+      else{
+        el.innerHTML = `<div class="muted">未支援的模組：${activeTab}</div>`;
+      }
+    }
 
-/* ====== 權限攔截（admin / committee） ====== */
-function ensureAdmin(redirectTab=null){
-  if(isLoggedIn() && (getRole()==='admin' || getRole()==='committee')) return true;
-  switchAuth('login');
-  new bootstrap.Modal(document.getElementById('authModal')).show();
-  if(redirectTab) pendingTab = redirectTab;
-  return false;
-}
-let pendingTab=null;
-function gotoTab(key){
-  if(!ensureAdmin(key)) return;
-  activeTab=key;
-  document.getElementById('feature-grid').classList.add('d-none');
-  renderTabContent();
-}
+    /* ========= PWA（SW + 安裝按鈕） ========= */
+    (function(){
+      const fab = document.getElementById('installCta');
+      let deferredPrompt = null;
 
-/* ====== UI / 通用搜尋 ====== */
-function updateAuthUI(){
-  const cta=document.getElementById('authCta');
-  const userDd=document.getElementById('authUser');
-  if(isLoggedIn()){
-    const u=getUser()||{};
-    cta?.classList.add('d-none'); userDd?.classList.remove('d-none');
-    document.getElementById('authName').textContent=u.name||u.email||'使用者';
-    document.getElementById('authMail').textContent=u.email||'user@example.com';
-  }else{
-    cta?.classList.remove('d-none'); userDd?.classList.add('d-none');
-  }
-}
-function withSearch(tableBlockHtml, placeholder='關鍵字搜尋'){
-  const id = 'tbl_' + Math.random().toString(36).slice(2,8);
-  return `
-    <div class="mb-2">
-      <input class="form-control form-control-sm" placeholder="${placeholder}"
-        oninput="(function(q){
-          const wrap = document.getElementById('${id}');
-          if(!wrap) return;
-          const trs = wrap.querySelectorAll('tbody tr');
-          const key = q.value.trim().toLowerCase();
-          trs.forEach(tr => { tr.style.display = key==='' || tr.textContent.toLowerCase().includes(key) ? '' : 'none'; });
-        })(this)">
-    </div>
-    <div id="${id}">${tableBlockHtml}</div>`;
-}
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(console.warn);
+      }
 
-/* ====== 分頁渲染 ====== */
-function renderTabContent(){
-  const PLACE = {
-    announcement:'搜尋：標題 / 內容 / 發布人',
-    vote:'搜尋：主題 / 狀態 / 截止日',
-    repair:'搜尋：房號 / 項目 / 狀態',
-    fee:'搜尋：房號 / 發票',
-    expenditure:'搜尋：項目 / 用途 / 金額',
-    resident:'搜尋：姓名 / 房號 / 電話',
-    staff:'搜尋：姓名 / 職位',
-    visitor:'搜尋：姓名 / 房號 / 時間',
-    parcel:'搜尋：收件人 / 包裹編號',
-    meeting:'搜尋：主題 / 地點',
-    activity:'搜尋：活動 / 地點',
-    maintenance:'搜尋：設備 / 項目 / 負責人',
-    qa:'搜尋：問題 / 回覆 / 房號',
-  };
-  let html="";
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (fab) fab.style.display = '';
+      });
 
-  if(activeTab==="announcement"){
-    const anns = load(LSK.announcements, []);
-    const top = `<button class="btn btn-sm btn-primary" onclick="createAnn()">＋ 新增公告</button>`;
-    const tableHtml = `
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="small text-muted">共 ${anns.length} 則</div><div>${top}</div>
-      </div>
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3 align-middle">
-        <thead class="table-success"><tr><th>標題</th><th>內容</th><th>發布時間</th><th>發布人</th><th style="width:160px">動作</th></tr></thead>
-        <tbody>
-          ${anns.map((a,i)=>`
-            <tr>
-              <td>${a.title}</td><td>${a.content}</td><td>${a.time}</td><td>${a.author}</td>
-              <td class="d-flex gap-2">
-                <button class="btn btn-sm btn-outline-primary" onclick="editAnn(${i})">編輯</button>
-                <button class="btn btn-sm btn-outline-danger" onclick="delAnn(${i})">刪除</button>
-              </td>
-            </tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>公告管理</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
+      fab?.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        try { await deferredPrompt.userChoice; } catch {}
+        deferredPrompt = null;
+        fab.style.display = 'none';
+      });
 
-  if(activeTab==="vote"){
-    const role = getRole();
-    const list = load(LSK.votes, []);
-    const top = (role==='admin' || role==='committee')
-      ? `<button class="btn btn-sm btn-primary" onclick="createVote()">＋ 新增投票</button>` : '';
-    const tableHtml = `
-      <div class="d-flex justify-content-between align-items-center">
-        <div class="small text-muted">共 ${list.length} 筆</div><div>${top}</div>
-      </div>
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3 align-middle">
-        <thead class="table-info"><tr>
-          <th>主題</th><th style="width:140px">截止</th><th style="width:90px">狀態</th><th>統計</th><th style="width:240px">動作</th>
-        </tr></thead><tbody>
-          ${list.map(v=>{
-            const counts = Array(v.options.length).fill(0);
-            (v.responses||[]).forEach(r=>{ if(Number.isInteger(r.choice)) counts[r.choice]++; });
-            const total = counts.reduce((a,b)=>a+b,0);
-            const stats = v.options.map((opt, i)=>{
-              const c=counts[i], pct = total? Math.round(c*100/total):0;
-              return `<div class="d-flex justify-content-between"><span>${opt}</span><span>${c}（${pct}%）</span></div>`;
-            }).join('');
-            const resultBtn = `<button class="btn btn-sm btn-outline-secondary" onclick="viewVote('${v.id}')">查看結果</button>`;
-            const closeBtn  = (v.status==='OPEN') ? `<button class="btn btn-sm btn-danger" onclick="closeVote('${v.id}')">關閉</button>` : '';
-            return `<tr>
-              <td>${v.title}</td><td>${v.deadline||'-'}</td><td>${v.status==='OPEN'?'<span class="badge bg-success">開放</span>':'<span class="badge bg-secondary">關閉</span>'}</td>
-              <td>${stats}</td>
-              <td class="d-flex gap-2">${resultBtn}${closeBtn}</td>
-            </tr>`;
-          }).join('')}
-        </tbody></table></div>`;
-    html = `<h4>投票管理</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
+      window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        if (fab) fab.style.display = 'none';
+      });
+    })();
 
-  if(activeTab==="repair"){
-    const list = load(LSK.repairs, []);
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-danger"><tr>
-          <th>房號</th><th>項目</th><th>描述</th><th>申請時間</th><th>狀態</th><th>廠商</th><th style="width:220px">動作</th>
-        </tr></thead><tbody>
-          ${list.map(r=>{
-            const act=[];
-            if(r.status==='NEW'){
-              act.push(`<button class="btn btn-sm btn-warning" onclick="assignRepair('${r.id}')">指派</button>`);
-            }
-            if(r.status==='ASSIGNED' || r.status==='IN_PROGRESS'){
-              act.push(`<button class="btn btn-sm btn-outline-info" onclick="noteRepair('${r.id}')">新增紀錄</button>`);
-              act.push(`<button class="btn btn-sm btn-success" onclick="closeRepair('${r.id}')">完工</button>`);
-            }
-            return `<tr>
-              <td>${r.room}</td><td>${r.item}</td><td>${r.desc}</td><td>${r.time}</td>
-              <td>${r.status}</td><td>${r.assigneeVendor||''}</td><td class="d-flex gap-2">${act.join(' ')||'-'}</td>
-            </tr>`;
-          }).join('')}
-        </tbody></table></div>`;
-    html = `<h4>報修派工</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
+    /* ========= 啟動 ========= */
+    window.addEventListener('DOMContentLoaded', () => {
+      // 權限檢查 + UI
+      if(!ensureAdmin()) return; // 未通過會直接導向 auth.html
+      updateAuthUI();
 
-  if(activeTab==="fee"){
-    const fees = load(LSK.fees, demoFees);
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-warning"><tr><th>房號</th><th>金額</th><th>到期日</th><th>已繳</th><th>發票號碼</th><th style="width:120px">動作</th></tr></thead><tbody>
-          ${fees.map((f,i)=>`<tr>
-              <td>${f.room}</td><td>${f.amount}</td><td>${f.due}</td><td>${f.paid?'是':'否'}</td><td>${f.invoice}</td>
-              <td><button class="btn btn-sm btn-outline-primary" onclick="togglePaid(${i})">${f.paid?'改為未繳':'標記已繳'}</button></td>
-            </tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>管理費</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="expenditure"){
-    const tableHtml = `
-      <div class="d-flex justify-content-end"><button class="btn btn-sm btn-primary" onclick="createExp()">＋ 新增支出</button></div>
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-warning"><tr><th>支出項目</th><th>金額</th><th>日期</th><th>用途</th><th>憑證</th></tr></thead><tbody>
-          ${demoExpenditures.map(e=>`<tr><td>${e.item}</td><td>${e.amount}</td><td>${e.date}</td><td>${e.purpose}</td><td>${e.proof}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>財務支出</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="resident"){
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-primary"><tr><th>姓名</th><th>房號</th><th>聯絡方式</th><th>車位</th><th>入住時間</th><th>家庭成員</th></tr></thead><tbody>
-          ${demoResidents.map(r=>`<tr><td>${r.name}</td><td>${r.room}</td><td>${r.phone}</td><td>${r.car}</td><td>${r.moveIn}</td><td>${r.family}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>住戶資料</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="staff"){
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-info"><tr><th>姓名</th><th>職位</th><th>聯絡方式</th></tr></thead><tbody>
-          ${demoStaff.map(s=>`<tr><td>${s.name}</td><td>${s.role}</td><td>${s.phone}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>主委、清潔人員</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="visitor"){
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-secondary"><tr><th>姓名</th><th>身分證</th><th>拜訪房號</th><th>進入時間</th><th>離開時間</th><th>備註</th></tr></thead><tbody>
-          ${demoVisitors.map(v=>`<tr><td>${v.name}</td><td>${v.idCard}</td><td>${v.room}</td><td>${v.in}</td><td>${v.out}</td><td>${v.note}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>訪客紀錄</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="parcel"){
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-secondary"><tr><th>收件人</th><th>房號</th><th>包裹編號</th><th>到達時間</th><th>領取狀態</th></tr></thead><tbody>
-          ${demoParcels.map(p=>`<tr><td>${p.receiver}</td><td>${p.room}</td><td>${p.code}</td><td>${p.arrival}</td><td>${p.received?'已領取':'未領取'}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>信件包裹</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="meeting"){
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-info"><tr><th>主題</th><th>時間</th><th>地點</th><th>參與人員</th><th>紀錄</th><th>決議事項</th></tr></thead><tbody>
-          ${demoMeetings.map(m=>`<tr><td>${m.topic}</td><td>${m.time}</td><td>${m.location}</td><td>${m.participants}</td><td>${m.record}</td><td>${m.resolution}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>會議紀錄</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="activity"){
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-success"><tr><th>活動名稱</th><th>時間</th><th>地點</th><th>報名方式</th><th>負責人</th></tr></thead><tbody>
-          ${demoActivities.map(a=>`<tr><td>${a.name}</td><td>${a.time}</td><td>${a.location}</td><td>${a.signup}</td><td>${a.organizer}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>活動時程</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="maintenance"){
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-info"><tr><th>設備名稱</th><th>保養項目</th><th>時間</th><th>負責人</th><th>花費</th><th>紀錄</th></tr></thead><tbody>
-          ${demoMaintenances.map(m=>`<tr><td>${m.equipment}</td><td>${m.item}</td><td>${m.time}</td><td>${m.handler}</td><td>${m.cost}</td><td>${m.note}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>維修保養</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  if(activeTab==="qa"){
-    const tableHtml = `
-      <div class="table-responsive"><table class="table table-bordered table-sm mt-3">
-        <thead class="table-info"><tr><th>房號</th><th>問題</th><th>回覆</th><th>狀態</th><th>時間</th></tr></thead><tbody>
-          ${demoQA.map(q=>`<tr><td>${q.room}</td><td>${q.q}</td><td>${q.a}</td><td>${q.status}</td><td>${q.time}</td></tr>`).join('')}
-        </tbody></table></div>`;
-    html = `<h4>客服問答</h4>` + withSearch(tableHtml, PLACE[activeTab]);
-  }
-
-  document.getElementById('tab-content').innerHTML = html;
-}
-
-/* ====== 公告 CRUD（簡化用 prompt） ====== */
-function createAnn(){
-  const title = prompt('公告標題？'); if(!title) return;
-  const content = prompt('公告內容？')||'';
-  const author = getUser()?.name || '管理者';
-  const anns = load(LSK.announcements, []);
-  anns.unshift({ id: Date.now(), title, content, time: new Date().toISOString().slice(0,10), author, attachment:'' });
-  save(LSK.announcements, anns);
-  toast('已新增公告'); renderTabContent();
-}
-function editAnn(idx){
-  const anns = load(LSK.announcements, []);
-  const a = anns[idx]; if(!a) return;
-  const title = prompt('公告標題？', a.title); if(!title) return;
-  const content = prompt('公告內容？', a.content)||'';
-  anns[idx] = { ...a, title, content };
-  save(LSK.announcements, anns);
-  toast('已更新公告'); renderTabContent();
-}
-function delAnn(idx){
-  const anns = load(LSK.announcements, []);
-  const a = anns[idx]; if(!a) return;
-  if(confirm(`刪除「${a.title}」？`)){
-    anns.splice(idx,1); save(LSK.announcements, anns); toast('已刪除'); renderTabContent();
-  }
-}
-
-/* ====== 管理費 切換繳費 ====== */
-function togglePaid(i){
-  const fees = load(LSK.fees, demoFees);
-  fees[i].paid = !fees[i].paid;
-  save(LSK.fees, fees);
-  toast('已更新繳費狀態');
-  renderTabContent();
-}
-
-/* ====== 支出 新增 ====== */
-function createExp(){
-  const item = prompt('支出項目？'); if(!item) return;
-  const amount = Number(prompt('金額？', '0')||'0');
-  const date = prompt('日期（YYYY-MM-DD）', new Date().toISOString().slice(0,10)) || '';
-  const purpose = prompt('用途？')||'';
-  demoExpenditures.unshift({ item, amount, date, purpose, proof:'收據' });
-  toast('已新增支出（Demo 只存於記憶體）');
-  renderTabContent();
-}
-
-/* ====== 報修派工 ====== */
-function assignRepair(id){
-  const vendor = prompt('指派廠商名稱？'); if(!vendor) return;
-  const list = load(LSK.repairs, []); const r=list.find(x=>x.id===id); if(!r) return;
-  r.assigneeVendor = vendor; r.status='ASSIGNED';
-  save(LSK.repairs, list); toast('已指派'); renderTabContent();
-}
-function noteRepair(id){
-  const note = prompt('新增紀錄 / 進度？'); if(note==null) return;
-  const list = load(LSK.repairs, []); const r=list.find(x=>x.id===id); if(!r) return;
-  r.progress.push({time:new Date().toLocaleString(), note}); r.status='IN_PROGRESS';
-  save(LSK.repairs, list); toast('已新增紀錄'); renderTabContent();
-}
-function closeRepair(id){
-  const list = load(LSK.repairs, []); const r=list.find(x=>x.id===id); if(!r) return;
-  if(confirm('確定標記為完工？')){ r.status='DONE'; save(LSK.repairs, list); toast('已完工'); renderTabContent(); }
-}
-
-/* ====== 投票 建立 / 結果 / 關閉（與前台一致） ====== */
-function createVote(){
-  if(!(getRole()==='admin' || getRole()==='committee')){ toast('需管理權限','danger'); return; }
-  const title = prompt('投票主題？'); if(!title) return;
-  const optsStr = prompt('選項（逗號分隔，至少 2 項）：', '同意,不同意'); if(!optsStr) return;
-  const options = optsStr.split(',').map(s=>s.trim()).filter(Boolean);
-  if(options.length<2){ toast('至少需要 2 個選項','danger'); return; }
-  const deadline = prompt('截止時間（可留空），例：2025-09-30 23:59')||'';
-  const list = load(LSK.votes, []);
-  list.unshift({ id: gid('V_'), title, options, deadline, status:'OPEN',
-                 createdAt:new Date().toISOString().slice(0,16).replace('T',' '), createdBy:getUser()?.email||'', responses:[] });
-  save(LSK.votes, list); toast('已建立投票'); renderTabContent();
-}
-function viewVote(id){
-  const list = load(LSK.votes, []); const v = list.find(x=>x.id===id); if(!v) return;
-  const counts = Array(v.options.length).fill(0);
-  (v.responses||[]).forEach(r=>{ if(Number.isInteger(r.choice)) counts[r.choice]++; });
-  const total = counts.reduce((a,b)=>a+b,0);
-  const lines = v.options.map((opt,i)=>`${opt}：${counts[i]} 票（${total?Math.round(counts[i]*100/total):0}%）`).join('\n');
-  alert(`【${v.title}】\n${lines}\n\n總票數：${total}`);
-}
-function closeVote(id){
-  if(!(getRole()==='admin' || getRole()==='committee')){ toast('需管理權限','danger'); return; }
-  const list = load(LSK.votes, []); const v = list.find(x=>x.id===id); if(!v) return;
-  if(v.status==='CLOSED'){ toast('已關閉','warning'); return; }
-  if(confirm('確定關閉此投票？')){ v.status='CLOSED'; save(LSK.votes, list); toast('已關閉'); renderTabContent(); }
-}
-
-/* ====== 認證流程（與前台對齊：登入成功一定提示） ====== */
-let authMode='login';
-function switchAuth(mode){
-  authMode=mode;
-  document.getElementById('authTitle').textContent=(mode==='login'?'登入':'註冊');
-  document.getElementById('loginForm').classList.toggle('d-none',mode!=='login');
-  document.getElementById('registerForm').classList.toggle('d-none',mode!=='register');
-  document.getElementById('switchAuthBtn').textContent=(mode==='login'?'切換到註冊':'切換到登入');
-}
-function toggleAuth(){ switchAuth(authMode==='login'?'register':'login'); }
-
-function handleLogin(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const pwd=document.getElementById('loginPwd').value.trim();
-  const role=document.getElementById('loginRole')?.value || 'admin';
-  const vendorName = document.getElementById('loginVendor')?.value.trim();
-  if(!email || pwd.length<6){ toast('請輸入正確 Email 與至少 6 碼密碼','danger'); return; }
-  const name=(email==='test@example.com'&&pwd==='123456')?'測試管理員':email.split('@')[0];
-
-  setUser({email,name, role, vendorName: role==='vendor' ? (vendorName||name) : undefined});
-
-  updateAuthUI();
-  bootstrap.Modal.getInstance(document.getElementById('authModal'))?.hide();
-  toast('登入成功');
-
-  if(!(role==='admin' || role==='committee')){
-    toast('您沒有後台權限，已導回前台','warning');
-    setTimeout(()=> location.href='index.html', 600);
-    return;
-  }
-  if(pendingTab){ const t=pendingTab; pendingTab=null; gotoTab(t); }
-}
-function handleRegister(){
-  const email=document.getElementById('regEmail').value.trim();
-  const name=document.getElementById('regName').value.trim();
-  const pwd=document.getElementById('regPwd').value.trim();
-  const role=document.getElementById('regRole')?.value || 'admin';
-  const vendorName = document.getElementById('regVendor')?.value.trim();
-  if(!email || !name || pwd.length<6){ toast('請完整填寫，密碼至少 6 碼','danger'); return; }
-
-  setUser({email,name, role, vendorName: role==='vendor' ? (vendorName||name) : undefined});
-
-  updateAuthUI();
-  bootstrap.Modal.getInstance(document.getElementById('authModal'))?.hide();
-  toast('註冊成功，已登入');
-
-  if(!(role==='admin' || role==='committee')){
-    toast('您沒有後台權限，已導回前台','warning');
-    setTimeout(()=> location.href='index.html', 600);
-    return;
-  }
-  if(pendingTab){ const t=pendingTab; pendingTab=null; gotoTab(t); }
-}
-function logout(){ clearUser(); updateAuthUI(); toast('已登出','warning'); }
-
-/* 個資 Modal */
-document.getElementById('profileModal')?.addEventListener('show.bs.modal', () => {
-  const u = getUser() || {};
-  document.getElementById('pfEmail').value = u.email || '';
-  document.getElementById('pfName').value  = u.name  || '';
-});
-function saveProfile(){
-  const u = getUser() || {};
-  const name = document.getElementById('pfName').value.trim();
-  setUser({ ...u, name });
-  updateAuthUI();
-  bootstrap.Modal.getInstance(document.getElementById('profileModal'))?.hide();
-  toast('已更新資料！');
-}
-
-/* ====== 初始化 ====== */
-document.addEventListener('DOMContentLoaded', () => {
-  renderCards(); updateAuthUI();
-
-  // vendor 顯示公司欄
-  const toggleVendorInputs = (selId, wrapId)=>{
-    const sel = document.getElementById(selId);
-    const wrap = document.getElementById(wrapId);
-    const toggle = ()=> wrap.classList.toggle('d-none', sel.value!=='vendor');
-    sel.addEventListener('change', toggle); toggle();
-  };
-  toggleVendorInputs('loginRole','loginVendorWrap');
-  toggleVendorInputs('regRole','regVendorWrap');
-
-  // Enter 送出登入
-  document.getElementById('loginPwd')?.addEventListener('keydown', e=>{ if(e.key==='Enter') handleLogin(); });
-
-  // 不是管理權限時，主動提示
-  if(isLoggedIn() && !(getRole()==='admin' || getRole()==='committee')){
-    toast('您沒有後台權限，將導回前台','warning');
-    setTimeout(()=> location.href='index.html', 600);
-  }
-});
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+      // 初始維持在模組卡片列表
+      backToGrid();
+    });
+  </script>
 </body>
 </html>
