@@ -18,15 +18,9 @@
     :root{ --container-w: min(1140px, calc(100vw - 24px)); }
     html,body{height:100%}
     body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial;}
-
-    /* App Bar */
     md-top-app-bar{ position: sticky; top: 0; z-index: 110; }
-
-    /* Layout */
     .app-shell{display:flex;flex-direction:column;min-height:100%}
     .container{width:var(--container-w);margin-inline:auto}
-
-    /* Grid Cards（與前台一致風格） */
     .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
     .tile{
       position:relative;border-radius:18px;overflow:hidden;min-height:200px;color:#fff;
@@ -40,16 +34,10 @@
     .badge{position:absolute;top:10px;right:10px;background:#FFD54F;color:#2b2b2b;border-radius:999px;padding:6px 10px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.14)}
     .tile .title{font-size:22px;font-weight:900;letter-spacing:.3px;margin:4px 0 8px}
     .tile .items{line-height:1.9;font-weight:600;opacity:.95}
-
-    /* 面板（內頁容器） */
     .panel{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
     .panel-body{padding:18px}
-
-    /* 安裝 FAB 位置（與前台一致） */
     #installCta{ position:fixed; right:16px; bottom: calc(env(safe-area-inset-bottom) + 132px); z-index:1200; display:none; }
     @media (max-width: 420px){ #installCta{ right:12px; bottom: calc(env(safe-area-inset-bottom) + 96px); } }
-
-    /* 小徽章 */
     .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#eef3f3;color:#0a443f;padding:6px 10px;font-weight:700}
     .muted{opacity:.66}
     .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -61,21 +49,18 @@
 </head>
 <body class="app-shell">
 
-  <!-- ===== Top App Bar（與前台一致風格） ===== -->
   <md-top-app-bar id="topbar">
     <div slot="navigationIcon" style="padding-left:6px"><span class="material-symbols-outlined">apartment</span></div>
     <div slot="headline" style="font-weight:900;letter-spacing:.4px">社區客服系統 · 管理後台</div>
 
-    <!-- 回前台 -->
     <md-icon-button id="goFront" slot="actionItems" aria-label="回前台" title="回前台" onclick="location.href='index.html'">
       <span class="material-symbols-outlined">home</span>
     </md-icon-button>
 
-    <!-- 使用者選單 -->
     <md-menu id="userMenu" anchor="userBtn">
       <md-menu-item disabled>
-        <div slot="headline" id="authName">使用者</div>
-        <div slot="supporting-text" id="authMail" class="muted">user@example.com</div>
+        <div slot="headline" id="authName">管理者</div>
+        <div slot="supporting-text" id="authMail" class="muted">admin@example.com</div>
       </md-menu-item>
       <md-divider></md-divider>
       <md-menu-item onclick="logout()">
@@ -88,7 +73,6 @@
     </md-icon-button>
   </md-top-app-bar>
 
-  <!-- ===== Main ===== -->
   <main class="container" style="padding:22px 0 28px">
     <div style="margin:8px 0 18px">
       <h2 style="font-weight:900;letter-spacing:.3px;margin:0;display:flex;gap:12px;align-items:center">
@@ -98,7 +82,6 @@
       <div class="muted" style="margin-top:6px">請選擇一個管理模組，或使用下方內頁工具列。</div>
     </div>
 
-    <!-- 模組卡片（與前台一致結構） -->
     <section id="feature-grid" class="grid" aria-live="polite">
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1581090463728-28b1b3a4f50b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('announcement')">
         <div class="badge">公告 / 投票</div>
@@ -155,7 +138,6 @@
       </div>
     </section>
 
-    <!-- 內頁面板 -->
     <section class="panel" style="margin-top:18px">
       <div class="panel-body">
         <div class="toolbar" style="margin-bottom:10px">
@@ -175,13 +157,14 @@
     </section>
   </main>
 
-  <!-- 安裝 App FAB（與前台一致） -->
+  <!-- 安裝 App FAB -->
   <md-fab id="installCta" label="安裝 App" variant="secondary">
     <span class="material-symbols-outlined" slot="icon">download</span>
   </md-fab>
 
+  <script src="index.js"></script>
   <script>
-    /* ========= 假資料（簡化版） ========= */
+    // 假資料
     const demoAnnouncements=[{id:1,title:"停水通知",content:"8/25上午9~12點停水。",time:"2025-08-20",author:"李主委"}];
     const demoMaintenances=[{id:1,equipment:"電梯",item:"年度保養",time:"2025-08-10",handler:"保養公司",cost:8000,note:"正常"}];
     const demoFees=[{id:1,room:"A101",amount:1200,due:"2025-09-10",paid:false,invoice:"INV20250802"}];
@@ -190,41 +173,10 @@
     const demoMeetings=[{id:1,topic:"財務審查",time:"2025-08-18",location:"會議室"}];
     const demoActivities=[{id:1,name:"中秋烤肉",time:"2025-09-15 18:00",location:"中庭"}];
 
-    /* ========= 儲存器 / 登入狀態 ========= */
-    const STORE_KEY = 'kms_user';
-    function getUser(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'null'); }catch(e){ return null; } }
-    function setUser(u){ localStorage.setItem(STORE_KEY, JSON.stringify(u||{})); }
-    function clearUser(){ localStorage.removeItem(STORE_KEY); }
-    function isLoggedIn(){ return !!getUser(); }
-    function getRole(){ return (getUser()||{}).role || 'user'; }
-
-    function ensureAdmin(){
-      const role = getRole();
-      if (isLoggedIn() && (role==='admin' || role==='committee')) return true;
-      const next = encodeURIComponent('backend.html');
-      location.href = `auth.html?next=${next}`;
-      return false;
-    }
-
-    /* ========= UI ========= */
-    function updateAuthUI(){
-      const u=getUser()||{};
-      document.getElementById('authName').textContent = u.name || u.email || '管理者';
-      document.getElementById('authMail').textContent = u.email || 'admin@example.com';
-    }
-
-    function logout(){
-      clearUser();
-      // 小提示：這裡可換成 Snackbar；先用 alert 簡化
-      // alert('已登出');
-      setTimeout(()=>{ location.replace('index.html'); }, 300);
-    }
-
-    /* ========= 模組渲染 ========= */
-    let activeTab = null;
+    ensureAdmin();  // 未通過會被導去 auth.html
+    initPage('admin');
 
     function backToGrid(){
-      activeTab = null;
       document.getElementById('feature-grid').style.display='';
       document.getElementById('btnBack').style.display='none';
       document.getElementById('btnAdd').style.display='none';
@@ -236,7 +188,6 @@
 
     function gotoTab(key){
       if(!ensureAdmin()) return;
-      activeTab = key;
       document.getElementById('feature-grid').style.display='none';
       document.getElementById('btnBack').style.display='';
       document.getElementById('btnAdd').style.display='';
@@ -250,18 +201,13 @@
         meeting:'會議 / 活動'
       }[key] || key);
 
-      renderTabContent();
+      renderTabContent(key);
     }
 
-    function renderTabContent(){
+    function renderTabContent(tab){
       const el = document.getElementById('tab-content');
-      if(!activeTab){ el.innerHTML=''; return; }
-
-      if(activeTab==='announcement'){
+      if(tab==='announcement'){
         el.innerHTML = `
-          <div class="toolbar">
-            <md-outlined-text-field id="q1" label="搜尋標題" type="search"></md-outlined-text-field>
-          </div>
           <div style="overflow:auto">
             <table>
               <thead><tr><th>標題</th><th>時間</th><th>作者</th></tr></thead>
@@ -271,11 +217,8 @@
             </table>
           </div>`;
       }
-      else if(activeTab==='maintenance'){
+      else if(tab==='maintenance'){
         el.innerHTML = `
-          <div class="toolbar">
-            <md-outlined-text-field id="q2" label="設備 / 項目" type="search"></md-outlined-text-field>
-          </div>
           <div style="overflow:auto">
             <table>
               <thead><tr><th>設備</th><th>項目</th><th>時間</th><th>承辦</th><th>費用</th><th>備註</th></tr></thead>
@@ -285,11 +228,8 @@
             </table>
           </div>`;
       }
-      else if(activeTab==='finance'){
+      else if(tab==='finance'){
         el.innerHTML = `
-          <div class="toolbar">
-            <md-outlined-text-field id="q3" label="房號" type="search"></md-outlined-text-field>
-          </div>
           <div style="overflow:auto">
             <table>
               <thead><tr><th>房號</th><th>金額</th><th>到期</th><th>狀態</th><th>發票</th></tr></thead>
@@ -299,11 +239,8 @@
             </table>
           </div>`;
       }
-      else if(activeTab==='resident'){
+      else if(tab==='resident'){
         el.innerHTML = `
-          <div class="toolbar">
-            <md-outlined-text-field id="q4" label="姓名 / 房號" type="search"></md-outlined-text-field>
-          </div>
           <div style="overflow:auto">
             <table>
               <thead><tr><th>姓名</th><th>房號</th><th>電話</th></tr></thead>
@@ -313,11 +250,8 @@
             </table>
           </div>`;
       }
-      else if(activeTab==='visitor'){
+      else if(tab==='visitor'){
         el.innerHTML = `
-          <div class="toolbar">
-            <md-outlined-text-field id="q5" label="姓名 / 房號" type="search"></md-outlined-text-field>
-          </div>
           <div style="overflow:auto">
             <table>
               <thead><tr><th>姓名</th><th>房號</th><th>進場</th><th>離場</th></tr></thead>
@@ -327,11 +261,8 @@
             </table>
           </div>`;
       }
-      else if(activeTab==='meeting'){
+      else if(tab==='meeting'){
         el.innerHTML = `
-          <div class="toolbar">
-            <md-outlined-text-field id="q6" label="主題 / 地點" type="search"></md-outlined-text-field>
-          </div>
           <div style="overflow:auto">
             <table>
               <thead><tr><th>主題</th><th>時間</th><th>地點</th></tr></thead>
@@ -343,48 +274,12 @@
           <div style="margin-top:12px" class="muted">活動：${demoActivities.map(a=>`${a.name}（${a.time}@${a.location}）`).join('、')}</div>`;
       }
       else{
-        el.innerHTML = `<div class="muted">未支援的模組：${activeTab}</div>`;
+        el.innerHTML = `<div class="muted">未支援的模組：${tab}</div>`;
       }
     }
 
-    /* ========= PWA（SW + 安裝按鈕） ========= */
-    (function(){
-      const fab = document.getElementById('installCta');
-      let deferredPrompt = null;
-
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(console.warn);
-      }
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        if (fab) fab.style.display = '';
-      });
-
-      fab?.addEventListener('click', async () => {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        try { await deferredPrompt.userChoice; } catch {}
-        deferredPrompt = null;
-        fab.style.display = 'none';
-      });
-
-      window.addEventListener('appinstalled', () => {
-        deferredPrompt = null;
-        if (fab) fab.style.display = 'none';
-      });
-    })();
-
-    /* ========= 啟動 ========= */
-    window.addEventListener('DOMContentLoaded', () => {
-      // 權限檢查 + UI
-      if(!ensureAdmin()) return; // 未通過會直接導向 auth.html
-      updateAuthUI();
-
-      // 初始維持在模組卡片列表
-      backToGrid();
-    });
+    // 預設顯示卡片列表
+    backToGrid();
   </script>
 </body>
 </html>
