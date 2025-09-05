@@ -1,5 +1,5 @@
 // sw.js (robust)
-const CACHE_VER = 'v10';
+const CACHE_VER = 'v11';
 const CACHE_NAME = `kms-${CACHE_VER}`;
 const CORE_ASSETS = [
   './',
@@ -39,28 +39,36 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
+// 在 fetch 事件中，加上導覽請求 (navigate) 的處理
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  const url = new URL(req.url);
 
-  // 只處理同網域 GET
-  if (req.method !== 'GET' || url.origin !== location.origin) return;
-
-  // HTML：network-first，離線回退快取
-  if (req.headers.get('accept')?.includes('text/html')) {
-    event.respondWith((async () => {
-      try {
-        const fresh = await fetch(req);
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(req, fresh.clone());
-        return fresh;
-      } catch (e) {
-        const cached = await caches.match(req);
-        return cached || caches.match('./index.html');
-      }
-    })());
+  // 導覽（HTML）→ 網路優先、離線退回快取，避免舊頁反覆載入
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req).then(r => {
+        const copy = r.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, copy));
+        return r;
+      }).catch(() => caches.match(req))
+    );
     return;
   }
+
+  // 其他資源維持「快取先、背景更新」或你的原策略
+  event.respondWith(
+    caches.match(req).then((cached) => {
+      const fetching = fetch(req).then((res) => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          caches.open(CACHE_NAME).then((c) => c.put(req, res.clone()));
+        }
+        return res;
+      }).catch(() => cached);
+      return cached || fetching;
+    })
+  );
+
+
 
   // 其他：cache-first，背景更新
   event.respondWith((async () => {
