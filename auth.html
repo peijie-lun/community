@@ -4,224 +4,89 @@
   <meta charset="UTF-8" />
   <title>登入 · 社區客服系統</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- PWA 必備：與 index.html 一致 -->
   <meta name="theme-color" content="#0a443f" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
   <!-- Material Web -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
   <script type="module">import 'https://esm.run/@material/web/all.js';</script>
+
   <style>
     html,body{height:100%}
-    body{margin:0;font-family: Roboto, system-ui, -apple-system,"Segoe UI",Arial;background:#f6f7fb}
-    main{max-width:960px;margin:0 auto;padding:24px}
-    .card{background:#fff;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.08);overflow:hidden}
-    .hero{padding:22px 22px 0}
-    .grid{display:grid;grid-template-columns:1.1fr .9fr}
-    @media (max-width:960px){ .grid{grid-template-columns:1fr} }
-    .side{background:linear-gradient(135deg,#0a443f,#238b83); color:#fff; padding:28px}
-    .side h2{margin:0 0 8px;font-weight:900;letter-spacing:.3px}
-    .muted{opacity:.95;line-height:1.7}
-    .form{padding:24px}
-    .row{display:flex;gap:12px}
-    .row>*{flex:1}
-    .link{color:#0a443f;text-decoration:none}
+    body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial; background:#f6f7fb; display:grid; place-items:center}
+    .card{background:#fff; width:min(520px, calc(100vw - 24px)); border-radius:18px; box-shadow:0 16px 48px rgba(0,0,0,.1); padding:22px}
+    .muted{opacity:.66}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
   </style>
 </head>
 <body>
-  <md-top-app-bar>
-    <a href="index.html" slot="navigationIcon" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">
-      <span class="material-symbols-outlined">arrow_back</span>
-    </a>
-    <div slot="headline" style="font-weight:900;letter-spacing:.3px">登入</div>
-    <a href="index.html" slot="end" class="link"><md-text-button>回首頁</md-text-button></a>
-  </md-top-app-bar>
+  <div class="card">
+    <h2 style="margin:0 0 4px; font-weight:900; letter-spacing:.3px">登入系統</h2>
+    <div class="muted" style="margin-bottom:14px">使用測試帳號登入。選擇角色可進入後台或一般功能頁。</div>
 
-  <main>
-    <section class="card grid">
-      <!-- 左側：說明 -->
-      <div class="side">
-        <h2>社區客服系統</h2>
-        <div class="muted">請先登入以使用住戶資料、報修、投票、公告…等功能。<br>測試帳密：<b>test@example.com / 123456</b></div>
-        <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap">
-          <md-suggest-chip label="住戶功能"></md-suggest-chip>
-          <md-suggest-chip label="報修追蹤"></md-suggest-chip>
-          <md-suggest-chip label="線上投票"></md-suggest-chip>
-          <md-suggest-chip label="公告未讀"></md-suggest-chip>
-          <md-suggest-chip label="PWA 離線"></md-suggest-chip>
-        </div>
-      </div>
+    <div class="row">
+      <md-outlined-text-field id="email" label="Email" value="test@example.com" style="flex:1 1 240px"></md-outlined-text-field>
+      <md-outlined-text-field id="password" label="密碼" type="password" value="123456" style="flex:1 1 160px"></md-outlined-text-field>
+    </div>
 
-      <!-- 右側：表單 -->
-      <div>
-        <div class="hero">
-          <md-segmented-button-set>
-            <md-outlined-segmented-button id="segLogin" selected label="登入"></md-outlined-segmented-button>
-            <md-outlined-segmented-button id="segRegister" label="註冊"></md-outlined-segmented-button>
-            <md-outlined-segmented-button id="segReset" label="忘記密碼"></md-outlined-segmented-button>
-          </md-segmented-button-set>
-        </div>
+    <div style="margin:10px 0 6px">角色</div>
+    <div class="row" role="radiogroup" aria-label="角色">
+      <md-filter-chip id="role_user" selected>一般使用者</md-filter-chip>
+      <md-filter-chip id="role_admin">Admin</md-filter-chip>
+      <md-filter-chip id="role_committee">Committee</md-filter-chip>
+    </div>
 
-        <div class="form">
-          <!-- 登入 -->
-          <form id="loginForm">
-            <md-outlined-text-field id="loginEmail" label="Email" type="email" style="width:100%"></md-outlined-text-field>
-            <md-outlined-text-field id="loginPwd" label="密碼（至少 6 碼）" type="password" style="width:100%;margin-top:10px"></md-outlined-text-field>
-            <div class="row" style="margin-top:10px;align-items:flex-end">
-              <md-outlined-select id="loginRole" label="角色（Demo）">
-                <md-select-option value="resident" selected><div slot="headline">住戶</div></md-select-option>
-                <md-select-option value="committee"><div slot="headline">管委會</div></md-select-option>
-                <md-select-option value="vendor"><div slot="headline">廠商</div></md-select-option>
-                <md-select-option value="admin"><div slot="headline">管理員</div></md-select-option>
-              </md-outlined-select>
-              <md-outlined-text-field id="loginVendor" label="公司名稱（廠商）" style="display:none"></md-outlined-text-field>
-            </div>
-            <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
-              <a href="#" id="toReset" class="link">忘記密碼？</a>
-              <md-filled-button id="btnLogin" trailing-icon>
-                登入
-                <span slot="icon" class="material-symbols-outlined">login</span>
-              </md-filled-button>
-            </div>
-          </form>
+    <div class="row" style="margin-top:16px">
+      <md-filled-button id="btnLogin">
+        <span class="material-symbols-outlined" slot="icon">login</span>登入
+      </md-filled-button>
+      <md-outlined-button onclick="location.href='index.html'">
+        <span class="material-symbols-outlined" slot="icon">home</span>回首頁
+      </md-outlined-button>
+    </div>
 
-          <!-- 註冊 -->
-          <form id="registerForm" style="display:none">
-            <md-outlined-text-field id="regEmail" label="Email" type="email" style="width:100%"></md-outlined-text-field>
-            <md-outlined-text-field id="regName"  label="顯示名稱" style="width:100%;margin-top:10px"></md-outlined-text-field>
-            <md-outlined-text-field id="regPwd"   label="密碼（至少 6 碼）" type="password" style="width:100%;margin-top:10px"></md-outlined-text-field>
-            <div class="row" style="margin-top:10px;align-items:flex-end">
-              <md-outlined-select id="regRole" label="角色（Demo）">
-                <md-select-option value="resident" selected><div slot="headline">住戶</div></md-select-option>
-                <md-select-option value="committee"><div slot="headline">管委會</div></md-select-option>
-                <md-select-option value="vendor"><div slot="headline">廠商</div></md-select-option>
-                <md-select-option value="admin"><div slot="headline">管理員</div></md-select-option>
-              </md-outlined-select>
-              <md-outlined-text-field id="regVendor" label="公司名稱（廠商）" style="display:none"></md-outlined-text-field>
-            </div>
-            <div style="margin-top:14px;display:flex;justify-content:flex-end">
-              <md-filled-button id="btnRegister" trailing-icon>
-                建立帳號
-                <span slot="icon" class="material-symbols-outlined">person_add</span>
-              </md-filled-button>
-            </div>
-          </form>
+    <div class="muted" style="margin-top:16px" id="nextInfo"></div>
+  </div>
 
-          <!-- 忘記密碼 -->
-          <form id="resetForm" style="display:none">
-            <div style="font-size:12px;color:#6b7280;margin-bottom:8px">Demo：會模擬寄出重設密碼連結至您的 Email。</div>
-            <md-outlined-text-field id="fpEmail" label="Email" type="email" style="width:100%"></md-outlined-text-field>
-            <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
-              <a href="#" id="toLogin" class="link">回登入</a>
-              <md-filled-button id="btnReset" trailing-icon>
-                寄送重設信
-                <span slot="icon" class="material-symbols-outlined">mail</span>
-              </md-filled-button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <md-snackbar id="snack"></md-snackbar>
-
+  <script src="index.js"></script>
   <script>
-    /* ===== 共用 Key / Utils ===== */
-    const AUTH_KEY="demo_auth_user";
-    const getUser =()=>JSON.parse(localStorage.getItem(AUTH_KEY)||"null");
-    const setUser =u=>localStorage.setItem(AUTH_KEY,JSON.stringify(u));
-    const isLoggedIn=()=>!!localStorage.getItem(AUTH_KEY);
-    const toast=(t,ms=2200)=>{const s=document.getElementById('snack'); s.labelText=t; s.open=true; setTimeout(()=>s.open=false,ms);};
+    const q = parseQuery(location.search);
+    const next = decodeURIComponent(q.next || '') || '';
 
-    // 安全處理 next（僅允許同網域；預設回首頁）
-    (function(){
-      const url = new URL(location.href);
-      let n = url.searchParams.get('next') || 'index.html';
-      try {
-        const u = new URL(n, location.origin);
-        if (u.origin !== location.origin) n = 'index.html';
-        window.__NEXT__ = u.pathname + u.search + u.hash;
-      } catch { window.__NEXT__ = 'index.html'; }
-    })();
-    const next = window.__NEXT__;
+    document.getElementById('nextInfo').textContent = next ? `登入後將前往：${next}` : '登入後將前往：app.html';
 
-    /* ===== Segment 切換 ===== */
-    const segLogin = document.getElementById('segLogin');
-    const segRegister = document.getElementById('segRegister');
-    const segReset = document.getElementById('segReset');
-    const show = (which)=>{
-      document.getElementById('loginForm').style.display = which==='login'?'':'none';
-      document.getElementById('registerForm').style.display = which==='register'?'':'none';
-      document.getElementById('resetForm').style.display = which==='reset'?'':'none';
-      segLogin.selected = which==='login';
-      segRegister.selected = which==='register';
-      segReset.selected = which==='reset';
-      document.title = (which==='login'?'登入':which==='register'?'註冊':'忘記密碼') + ' · 社區客服系統';
+    // 若已登入，直接走轉向
+    if (isLoggedIn()) {
+      redirectAfterLogin(next, getRole());
+    }
+
+    // 角色切換
+    const chips = {
+      user: document.getElementById('role_user'),
+      admin: document.getElementById('role_admin'),
+      committee: document.getElementById('role_committee')
     };
-    segLogin.addEventListener('click', ()=>show('login'));
-    segRegister.addEventListener('click', ()=>show('register'));
-    segReset.addEventListener('click', ()=>show('reset'));
-    document.getElementById('toReset').addEventListener('click', (e)=>{e.preventDefault();show('reset');});
-    document.getElementById('toLogin').addEventListener('click', (e)=>{e.preventDefault();show('login');});
+    Object.entries(chips).forEach(([k,chip])=>{
+      chip.addEventListener('click', ()=>{
+        Object.values(chips).forEach(c=>c.selected=false);
+        chip.selected = true;
+      });
+    });
 
-    /* ===== 角色切換顯示廠商公司欄位 ===== */
-    const toggleVendor = (selId, inputId)=>{
-      const sel=document.getElementById(selId), inp=document.getElementById(inputId);
-      const doToggle=()=>{ inp.style.display = (sel.value==='vendor') ? '' : 'none'; };
-      sel.addEventListener('change', doToggle); doToggle();
-    };
-    toggleVendor('loginRole','loginVendor');
-    toggleVendor('regRole','regVendor');
+    document.getElementById('btnLogin').addEventListener('click', ()=>{
+      const email = document.getElementById('email').value.trim();
+      const pwd   = document.getElementById('password').value;
+      const role  = chips.admin.selected ? 'admin' : (chips.committee.selected ? 'committee' : 'user');
 
-    /* ===== 行為：登入 / 註冊 / 重設 ===== */
-    function doLogin(){
-      const email=document.getElementById('loginEmail').value.trim();
-      const pwd=document.getElementById('loginPwd').value.trim();
-      const role=document.getElementById('loginRole').value || 'resident';
-      const vendorName=document.getElementById('loginVendor').value.trim();
-      if(!email || pwd.length<6){ toast('請輸入正確 Email 與至少 6 碼密碼'); return; }
-      const name=(email==='test@example.com'&&pwd==='123456')?'測試用戶':email.split('@')[0];
-      setUser({email,name, role, vendorName: role==='vendor' ? (vendorName||name) : undefined});
-      toast('登入成功');
-      if(role==='admin'){ location.href = 'backend.html'; return; }
-      setTimeout(()=> location.href = next, 300);
-    }
-    function doRegister(){
-      const email=document.getElementById('regEmail').value.trim();
-      const name=document.getElementById('regName').value.trim();
-      const pwd=document.getElementById('regPwd').value.trim();
-      const role=document.getElementById('regRole').value || 'resident';
-      const vendorName=document.getElementById('regVendor').value.trim();
-      if(!email || !name || pwd.length<6){ toast('請完整填寫，密碼至少 6 碼'); return; }
-      setUser({email,name, role, vendorName: role==='vendor' ? (vendorName||name) : undefined});
-      toast('註冊成功，已登入');
-      if(role==='admin'){ location.href = 'backend.html'; return; }
-      setTimeout(()=> location.href = next, 300);
-    }
-    function doReset(){
-      const email=document.getElementById('fpEmail').value.trim();
-      if(!email){ toast('請輸入 Email'); return; }
-      toast(`已寄出重設密碼連結至：${email}（Demo 模擬）`);
-      setTimeout(()=> show('login'), 400);
-    }
+      // 簡化驗證
+      if (!email) { alert('請輸入 Email'); return; }
+      if (!pwd)   { alert('請輸入密碼'); return; }
 
-    document.getElementById('btnLogin').addEventListener('click', doLogin);
-    document.getElementById('btnRegister').addEventListener('click', doRegister);
-    document.getElementById('btnReset').addEventListener('click', doReset);
-    document.getElementById('loginPwd').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-    document.getElementById('regPwd').addEventListener('keydown', e=>{ if(e.key==='Enter') doRegister(); });
-
-    /* ===== 已登入就直接導回 + PWA ===== */
-    window.addEventListener('DOMContentLoaded', ()=>{
-      if(isLoggedIn()){ location.href = next; return; }
-      if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}); }
-      const h = (location.hash||'').replace('#','');
-      if(h==='register') show('register');
-      else if(h==='reset') show('reset');
-      else show('login');
+      setUser({ email, name: email.split('@')[0], role });
+      redirectAfterLogin(next, role);
     });
   </script>
 </body>
