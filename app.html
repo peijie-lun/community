@@ -7,6 +7,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
   <script type="module">import 'https://esm.run/@material/web/all.js';</script>
+  <meta name="theme-color" content="#0a443f" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+
   <style>
     :root{ --container-w: min(1140px, calc(100vw - 24px)); }
     html,body{height:100%}
@@ -37,6 +42,42 @@
       <div id="content"><!-- JS render --></div>
     </div></section>
   </main>
+<!-- 安裝 App 浮動按鈕 -->
+<button id="installCta"
+  style="position:fixed; right:16px; bottom:24px; z-index:1200; display:none; padding:10px 14px; border-radius:999px; border:none; background:#0a443f; color:#fff; box-shadow:0 6px 20px rgba(0,0,0,.18);">
+  下載 / 安裝 App
+</button>
+
+<script>
+// Service Worker 註冊 + PWA 安裝提示
+(function(){
+  const fab = document.getElementById('installCta');
+  let deferredPrompt = null;
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(console.warn);
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (fab) fab.style.display = '';
+  });
+
+  fab?.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    try { await deferredPrompt.userChoice; } catch {}
+    deferredPrompt = null;
+    fab.style.display = 'none';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    if (fab) fab.style.display = 'none';
+  });
+})();
+</script>
 
   <md-snackbar id="snack"></md-snackbar>
 
