@@ -1,5 +1,5 @@
 /** ======================================================================
- * index.js ─ 登入/權限、PWA、LocalStorage DB、各模組 API、緊急動作
+ * index.js ─ 登入/權限、PWA、LocalStorage DB、各模組 API、緊急動作、AI 客服
  * ====================================================================== */
 
 /* ============================ 身分狀態 ============================ */
@@ -103,28 +103,52 @@ function updateAuthUI() {
   if (logoutEl) logoutEl.style.display = isLoggedIn() ? "" : "none";
 }
 
-/* ============================ PWA 安裝 ============================ */
+/* ============================ PWA 安裝（支援與 AI 客服共存） ============================ */
 function initPWA(buttonId = "installCta") {
   const btn = document.getElementById(buttonId);
   if (!btn) return;
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(()=>{});
+
+  // 廣播 FAB 可見狀態，讓 AI 客服重新排版
+  const notify = () => {
+    const visible = btn && getComputedStyle(btn).display !== 'none';
+    window.dispatchEvent(new CustomEvent('installCta-visibility', { detail: { visible } }));
+  };
+
   let deferredPrompt = null;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
-  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; btn.style.display = ""; btn.removeAttribute("disabled"); btn.title = "安裝此應用"; });
-  if (isIOS && !isStandalone) btn.style.display = "";
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault(); deferredPrompt = e;
+    btn.style.display = ""; btn.removeAttribute("disabled"); btn.title = "安裝此應用";
+    notify();
+  });
+  if (isIOS && !isStandalone) { btn.style.display = ""; notify(); }
+
   btn.addEventListener("click", async () => {
     if (location.protocol === "file:") return alert("安裝需要從 http(s) 或 localhost 開啟。");
     if (deferredPrompt) {
-      try { deferredPrompt.prompt(); const c = await deferredPrompt.userChoice; if (c?.outcome !== "dismissed") btn.style.display = "none"; }
-      finally { deferredPrompt = null; }
+      try {
+        deferredPrompt.prompt();
+        const c = await deferredPrompt.userChoice;
+        if (c?.outcome !== "dismissed") { btn.style.display = "none"; notify(); }
+      } finally { deferredPrompt = null; }
       return;
     }
     if (isIOS && !isStandalone) return alert("Safari → 分享 → 加入主畫面");
     alert("請使用瀏覽器的「安裝」選項安裝。");
   });
-  window.addEventListener("appinstalled", () => { deferredPrompt = null; btn.style.display = "none"; });
+
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt = null; btn.style.display = "none"; notify();
+  });
+
+  // 初次通知 & 視窗變動時也檢查
+  notify();
+  window.addEventListener('resize', notify);
 }
+
 /* ============================ 頁面初始化 ============================ */
 function initPage(kind) { updateAuthUI(); initPWA("installCta"); if (kind === 'backend') ensureBackend(); }
 window.initPage = initPage;
@@ -325,9 +349,44 @@ const EmergencyActions = {
     alert('跌倒偵測：已通知社區與家屬（示意）。');
   }
 };
+window.EmergencyActions = EmergencyActions;
+
+/* ============================ 對外暴露 ============================ */
+window.parseQuery = parseQuery;
+window.getUser = getUser;
+window.setUser = setUser;
+window.clearUser = clearUser;
+window.isLoggedIn = isLoggedIn;
+window.getRole = getRole;
+window.hasRole = hasRole;
+window.toRelative = toRelative;
+window.gotoLogin = gotoLogin;
+window.ensureLogin = ensureLogin;
+window.ensureBackend = ensureBackend;
+window.ensureAdmin = ensureAdmin;
+window.redirectAfterLogin = redirectAfterLogin;
+window.logout = logout;
+window.guardAction = guardAction;
+window.gotoProtected = gotoProtected;
+window.canAccessBackend = canAccessBackend;
+window.initPage = initPage;
+window.updateAuthUI = updateAuthUI;
+
+window.DB = DB;
+window.Ann = Ann;
+window.Maint = Maint;
+window.Fee = Fee;
+window.Resi = Resi;
+window.Visit = Visit;
+window.Pack = Pack;
+window.Meet = Meet;
+window.Act = { list:()=>DB.list("activities"), get:(id)=>DB.find("activities", id) };
+window.Emergency = Emergency;
+window.speak = speak;
+
 /* =========================================================================
  * AI Chat Widget（右下角）— 未登入可開面板，但功能必須先登入
- * 這段替換掉你現有的 AIChat 區塊即可
+ * 與右下安裝 FAB 共存（自動錯位）
  * ========================================================================= */
 const AIChat = (() => {
   const S = `
@@ -387,7 +446,7 @@ const AIChat = (() => {
       </div>
     </div>`;
 
-  /* ---------- 依身分產生卡片（同前版） ---------- */
+  // 依身分產生卡片
   function cardsFor(role){
     const c = [];
     const common = { title:'《常用功能》', links: [
@@ -422,16 +481,15 @@ const AIChat = (() => {
     return c;
   }
 
-  /* ---------- 登入守門：未登入先導去 auth.html ---------- */
+  // 登入守門：未登入先導去 auth.html
   function requireLoginThen(task){
     if (isLoggedIn()) { task(); return; }
     pushBot('請先登入後再使用此功能，為您導向登入頁…');
-    // 保留回跳目標
     const next = toRelative(location.pathname + location.search + location.hash);
     gotoLogin(next);
   }
 
-  /* ---------- 快捷行為（套用登入守門） ---------- */
+  // 快捷行為（包裝登入守門）
   const QUICK_ACTIONS = {
     goto_announcement(){ requireLoginThen(()=> location.href = 'app.html#announcement'); },
     goto_maintenance(){ requireLoginThen(()=> location.href = 'app.html#maintenance'); },
@@ -470,7 +528,6 @@ const AIChat = (() => {
     emg_fall(){ requireLoginThen(()=> EmergencyActions.simFall()); }
   };
 
-  /* ---------- 介面 & 互動（與前版相同） ---------- */
   let state = { open:false, tab:'common', booted:false };
 
   function cardsForRole(){ return cardsFor(getRole()); }
@@ -523,6 +580,19 @@ const AIChat = (() => {
     else setTimeout(()=>pushBot('（尚未定義的動作）'), 120);
   }
 
+  // 與安裝 FAB 共存的排版
+  function reflowDock(){
+    const wrap = document.querySelector('.aichat-wrap');
+    const fab  = document.getElementById('installCta');
+    if (!wrap) return;
+    let offset = 16;
+    if (fab && getComputedStyle(fab).display !== 'none') {
+      const h = fab.getBoundingClientRect().height || 56;
+      offset = Math.max(16, h + 24);
+    }
+    wrap.style.bottom = offset + 'px';
+  }
+
   function mount(){
     if (state.booted) return; state.booted = true;
     const st = document.createElement('style'); st.textContent = S; document.head.appendChild(st);
@@ -544,8 +614,15 @@ const AIChat = (() => {
         renderCards();
       };
     });
+
     renderCards();
-    pushBot('嗨～這裡是 AI 客服的「社區功能快捷」。未登入可先瀏覽與發問；點功能時我會帶你去登入頁。');
+    pushBot('嗨～這裡是 AI 客服的「社區功能快捷」。未登入可先瀏覽與發問；點功能時我會先帶你去登入頁。');
+
+    // 監聽 FAB 顯示與視窗變動
+    reflowDock();
+    window.addEventListener('installCta-visibility', reflowDock);
+    window.addEventListener('resize', reflowDock);
+    setTimeout(reflowDock, 250);
   }
 
   function open(show){
@@ -558,7 +635,7 @@ const AIChat = (() => {
     if (show) setTimeout(()=>document.getElementById('aiInput')?.focus(), 50);
   }
 
-  return { mount, open, quick };
+  return { mount, open, quick, reflowDock };
 })();
 
 // 自動掛載
@@ -567,37 +644,3 @@ if (document.readyState === 'loading') {
 } else {
   AIChat.mount();
 }
-
-window.EmergencyActions = EmergencyActions;
-
-/* ============================ 對外暴露 ============================ */
-window.parseQuery = parseQuery;
-window.getUser = getUser;
-window.setUser = setUser;
-window.clearUser = clearUser;
-window.isLoggedIn = isLoggedIn;
-window.getRole = getRole;
-window.hasRole = hasRole;
-window.toRelative = toRelative;
-window.gotoLogin = gotoLogin;
-window.ensureLogin = ensureLogin;
-window.ensureBackend = ensureBackend;
-window.ensureAdmin = ensureAdmin;
-window.redirectAfterLogin = redirectAfterLogin;
-window.logout = logout;
-window.guardAction = guardAction;
-window.gotoProtected = gotoProtected;
-window.canAccessBackend = canAccessBackend;
-window.initPage = initPage;
-window.updateAuthUI = updateAuthUI;
-window.DB = DB;
-window.Ann = Ann;
-window.Maint = Maint;
-window.Fee = Fee;
-window.Resi = Resi;
-window.Visit = Visit;
-window.Pack = Pack;
-window.Meet = Meet;
-window.Act = { list:()=>DB.list("activities"), get:(id)=>DB.find("activities", id) };
-window.Emergency = Emergency;
-window.speak = speak;
