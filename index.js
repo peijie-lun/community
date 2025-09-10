@@ -325,6 +325,249 @@ const EmergencyActions = {
     alert('跌倒偵測：已通知社區與家屬（示意）。');
   }
 };
+/* =========================================================================
+ * AI Chat Widget（右下角）— 未登入可開面板，但功能必須先登入
+ * 這段替換掉你現有的 AIChat 區塊即可
+ * ========================================================================= */
+const AIChat = (() => {
+  const S = `
+  .aichat-wrap{position:fixed; right:16px; bottom:16px; z-index:2147483000; font-family:Roboto, system-ui, -apple-system,"Segoe UI", Arial}
+  .aichat-btn{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;cursor:pointer;background:#2c7a7b;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.18)}
+  .aichat-panel{width:min(740px,calc(100vw - 28px)); height: min(560px, calc(100vh - 28px)); max-height:640px; background:#fff; border-radius:18px;
+    box-shadow:0 22px 48px rgba(0,0,0,.22); display:flex; flex-direction:column; overflow:hidden}
+  .aichat-header{display:flex; align-items:center; gap:8px; padding:10px 12px; background:#f2f6f5; border-bottom:1px solid #e8eded}
+  .aichat-title{font-weight:900; letter-spacing:.3px}
+  .aichat-sp{flex:1}
+  .aichat-icbtn{border:none;background:transparent;cursor:pointer;padding:6px;border-radius:10px}
+  .aichat-icbtn:hover{background:#e9f1f0}
+  .aichat-body{flex:1; display:grid; grid-template-columns: 1fr; overflow:hidden}
+  .aichat-suggest{display:flex; gap:10px; padding:12px; border-bottom:1px solid #eef2f2}
+  .aichat-tab{padding:8px 12px; border-radius:999px; background:#eef5f4; color:#275a59; font-weight:700; cursor:pointer; white-space:nowrap}
+  .aichat-tab.active{background:#2c7a7b;color:#fff}
+  .aichat-cols{display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:14px; padding:12px; overflow:auto}
+  .aichat-card{background:#fff; border:1px solid #e7ecef; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.06); overflow:hidden}
+  .aichat-card h4{margin:10px 12px; font-size:15px}
+  .aichat-card a{display:block; padding:10px 12px; border-top:1px solid #edf1f2; color:#2c7a7b; text-decoration:none}
+  .aichat-card a:hover{background:#f8fbfb}
+  .aichat-chat{display:flex; flex-direction:column; gap:6px; padding:12px; height:100%; overflow:auto; background:#fafdfd}
+  .aichat-msg{max-width:70%; padding:10px 12px; border-radius:12px; line-height:1.5; box-shadow:0 4px 12px rgba(0,0,0,.06)}
+  .aichat-bot{background:#ffffff; border:1px solid #e8eded}
+  .aichat-me{background:#2c7a7b; color:#fff; margin-left:auto}
+  .aichat-inputbar{display:flex; gap:8px; padding:10px; border-top:1px solid #e8eded; background:#fff}
+  .aichat-inp{flex:1; border:1px solid #e3eaec; border-radius:999px; padding:12px 14px; outline:none}
+  .aichat-send{width:44px; height:44px; border-radius:50%; border:none; cursor:pointer; background:#2c7a7b; color:#fff}
+  @media (max-width: 520px){
+    .aichat-panel{width:calc(100vw - 16px); height:calc(100vh - 16px)}
+  }`;
+  const TEMPLATE = `
+    <div class="aichat-btn" id="aiFab" title="AI 客服">
+      <span class="material-symbols-outlined" style="font-size:28px">support_agent</span>
+    </div>
+    <div class="aichat-panel" id="aiPanel" style="display:none">
+      <div class="aichat-header">
+        <span class="material-symbols-outlined" aria-hidden="true">support_agent</span>
+        <div class="aichat-title">AI 客服（社區功能快捷）</div>
+        <div class="aichat-sp"></div>
+        <button class="aichat-icbtn" id="aiMin"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="aichat-body">
+        <div class="aichat-suggest" role="tablist" aria-label="快捷分類">
+          <div class="aichat-tab active" data-tab="common">常用功能</div>
+          <div class="aichat-tab" data-tab="resident">住戶服務</div>
+          <div class="aichat-tab" data-tab="emg">緊急服務</div>
+        </div>
+        <div id="aiCols" class="aichat-cols"></div>
+        <div id="aiChat" class="aichat-chat" aria-live="polite"></div>
+      </div>
+      <div class="aichat-inputbar">
+        <input id="aiInput" class="aichat-inp" type="text" placeholder="請輸入您的問題…" />
+        <button id="aiSend" class="aichat-send" title="送出">
+          <span class="material-symbols-outlined">send</span>
+        </button>
+      </div>
+    </div>`;
+
+  /* ---------- 依身分產生卡片（同前版） ---------- */
+  function cardsFor(role){
+    const c = [];
+    const common = { title:'《常用功能》', links: [
+      ['公告 / 投票','goto_announcement'],
+      ['維修 / 客服','goto_maintenance'],
+      ['帳務 / 收費','goto_finance'],
+      ['住戶 / 人員','goto_resident'],
+      ['訪客 / 包裹','goto_visitor'],
+      ['會議 / 活動','goto_meeting'],
+      ['緊急紀錄','goto_emergency']
+    ]};
+    const resiLinks = [];
+    if (role === 'resident') { resiLinks.push(['申請報修','ask_repair'], ['編輯我的資料','edit_self']); }
+    resiLinks.push(['查看我的社區資料（列表）','goto_resident']);
+    const resident = { title:'《住戶服務》', links: resiLinks };
+    const emg = { title:'《緊急服務》', links: [
+      ['救護車（119）','emg_119'],
+      ['報警（110）','emg_110'],
+      ['AED 送達','emg_aed'],
+      ['跌倒偵測（模擬）','emg_fall']
+    ]};
+    if (role === 'committee') {
+      c.push([ common, { title:'《管委會工具》', links: [['開啟後台','goto_backend']] }, emg ]);
+    } else if (role === 'vendor') {
+      c.push([ { title:'《維修工作》', links: [
+        ['我的工單（維修 / 客服）','goto_maintenance'],
+        ['回覆工單進度（在列表操作）','goto_maintenance']
+      ]}, emg ]);
+    } else {
+      c.push([ common, resident, emg ]);
+    }
+    return c;
+  }
+
+  /* ---------- 登入守門：未登入先導去 auth.html ---------- */
+  function requireLoginThen(task){
+    if (isLoggedIn()) { task(); return; }
+    pushBot('請先登入後再使用此功能，為您導向登入頁…');
+    // 保留回跳目標
+    const next = toRelative(location.pathname + location.search + location.hash);
+    gotoLogin(next);
+  }
+
+  /* ---------- 快捷行為（套用登入守門） ---------- */
+  const QUICK_ACTIONS = {
+    goto_announcement(){ requireLoginThen(()=> location.href = 'app.html#announcement'); },
+    goto_maintenance(){ requireLoginThen(()=> location.href = 'app.html#maintenance'); },
+    goto_finance(){ requireLoginThen(()=> location.href = 'app.html#finance'); },
+    goto_resident(){ requireLoginThen(()=> location.href = 'app.html#resident'); },
+    goto_visitor(){ requireLoginThen(()=> location.href = 'app.html#visitor'); },
+    goto_meeting(){ requireLoginThen(()=> location.href = 'app.html#meeting'); },
+    goto_emergency(){ requireLoginThen(()=> location.href = 'app.html#emergency'); },
+    goto_backend(){ requireLoginThen(()=>{
+      if (!hasRole('committee')) return alert('只有管委會可進入後台。');
+      location.href = 'backend.html';
+    }); },
+    ask_repair(){ requireLoginThen(()=>{
+      if (getRole() !== 'resident') { location.href = 'app.html#maintenance'; return; }
+      const equipment = prompt('報修設備：'); if (!equipment) return;
+      const item = prompt('報修項目/描述：'); if (!item) return;
+      Maint.create({ equipment, item, handler:'', cost:0, note:'住戶透過 AI 客服申請報修' });
+      pushBot('已建立報修，您可到「維修 / 客服」查看進度。');
+      location.href = 'app.html#maintenance';
+    }); },
+    edit_self(){ requireLoginThen(()=>{
+      if (getRole()!=='resident') return location.href='app.html#resident';
+      const email = getUser()?.email || '';
+      if (!email) return alert('需要帳號中有 Email 才能對應住戶資料。');
+      const me = Resi.list().find(x => (x.email||'').toLowerCase() === email.toLowerCase());
+      if (!me) { alert('找不到你的住戶資料，請聯絡管委會建立。'); return; }
+      const name = prompt('姓名：', me.name || ''); if (name==null) return;
+      const room = prompt('房號：', me.room || ''); if (room==null) return;
+      const phone = prompt('電話：', me.phone || ''); if (phone==null) return;
+      Resi.update({ id: me.id, name, room, phone });
+      pushBot('已更新你的基本資料。'); location.href = 'app.html#resident';
+    }); },
+    emg_119(){ requireLoginThen(()=> EmergencyActions.call119()); },
+    emg_110(){ requireLoginThen(()=> EmergencyActions.call110()); },
+    emg_aed(){ requireLoginThen(()=> EmergencyActions.aed()); },
+    emg_fall(){ requireLoginThen(()=> EmergencyActions.simFall()); }
+  };
+
+  /* ---------- 介面 & 互動（與前版相同） ---------- */
+  let state = { open:false, tab:'common', booted:false };
+
+  function cardsForRole(){ return cardsFor(getRole()); }
+
+  function renderCards(){
+    const cols = document.getElementById('aiCols'); if (!cols) return;
+    const groups = cardsForRole();
+    const map = { common:0, resident:1, emg:2 };
+    const gi = map[state.tab] ?? 0;
+    const cards = groups[0] && groups[0][gi] ? groups.map(g=>g[gi]).filter(Boolean) : (groups[0] || []);
+    const list = cards.length ? cards : (groups[0] || []);
+    cols.innerHTML = list.map(card => `
+      <div class="aichat-card">
+        <h4>${card.title}</h4>
+        ${card.links.map(([t,act])=>`<a href="#" onclick="event.preventDefault(); AIChat.quick('${act}','${t}')">${t}</a>`).join('')}
+      </div>
+    `).join('');
+  }
+
+  function pushMe(text){ const box = document.getElementById('aiChat'); box?.insertAdjacentHTML('beforeend', `<div class="aichat-msg aichat-me">${esc(text)}</div>`); box&&(box.scrollTop=box.scrollHeight); }
+  function pushBot(text){ const box = document.getElementById('aiChat'); box?.insertAdjacentHTML('beforeend', `<div class="aichat-msg aichat-bot">${esc(text)}</div>`); box&&(box.scrollTop=box.scrollHeight); }
+  const esc = (s)=>String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+  function simpleReply(q){
+    const t = q.trim().toLowerCase();
+    if (!t) return '想問什麼都可以先跟我說～';
+    if (/登入|登出|login|logout/.test(t)) return '點任何功能時我會帶你去登入頁；登入後即可使用全部對應功能。';
+    if (/公告|投票/.test(t)) return '要看公告/投票，點「常用功能 → 公告 / 投票」。';
+    if (/維修|報修|工單/.test(t)) return '維修相關可到「常用功能 → 維修 / 客服」，住戶也可用「住戶服務 → 申請報修」。';
+    if (/繳費|管理費|帳務/.test(t)) return '繳費與帳務請到「常用功能 → 帳務 / 收費」。';
+    if (/住戶|名冊|我的資料|個資/.test(t)) return '名冊在「常用功能 → 住戶 / 人員」，編輯個資請用「住戶服務 → 編輯我的資料」。';
+    if (/訪客|包裹/.test(t)) return '訪客/包裹請到「常用功能 → 訪客 / 包裹」。';
+    if (/會議|活動/.test(t)) return '會議與活動請到「常用功能 → 會議 / 活動」。';
+    if (/119|救護|急救|110|報警|aed|跌倒/.test(t)) return '緊急服務請用「緊急服務」分頁的四個按鈕；未登入時會先帶你登入。';
+    return '已收到～可先用上方卡片進入各功能；未登入時我會先帶你去登入頁。';
+  }
+
+  function send(){
+    const inp = document.getElementById('aiInput'); if (!inp) return;
+    const val = inp.value.trim(); if (!val) return;
+    pushMe(val); setTimeout(()=>pushBot(simpleReply(val)), 220);
+    inp.value = ''; inp.focus();
+  }
+
+  function quick(action, label=''){
+    open(true);
+    pushMe(label ? `[點選] ${label}` : '[點選]');
+    const fn = QUICK_ACTIONS[action];
+    if (typeof fn === 'function') setTimeout(fn, 80);
+    else setTimeout(()=>pushBot('（尚未定義的動作）'), 120);
+  }
+
+  function mount(){
+    if (state.booted) return; state.booted = true;
+    const st = document.createElement('style'); st.textContent = S; document.head.appendChild(st);
+    if (!document.querySelector('link[href*="Material+Symbols"]')) {
+      const l = document.createElement('link'); l.rel='stylesheet';
+      l.href='https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1';
+      document.head.appendChild(l);
+    }
+    const wrap = document.createElement('div'); wrap.className='aichat-wrap'; wrap.innerHTML=TEMPLATE; document.body.appendChild(wrap);
+    wrap.querySelector('#aiFab').onclick = () => open(true);
+    wrap.querySelector('#aiMin').onclick = () => open(false);
+    wrap.querySelector('#aiSend').onclick = send;
+    wrap.querySelector('#aiInput').addEventListener('keydown', e=>{ if(e.key==='Enter') send(); });
+    wrap.querySelectorAll('.aichat-tab').forEach(t=>{
+      t.onclick = () => {
+        wrap.querySelectorAll('.aichat-tab').forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        state.tab = t.dataset.tab;
+        renderCards();
+      };
+    });
+    renderCards();
+    pushBot('嗨～這裡是 AI 客服的「社區功能快捷」。未登入可先瀏覽與發問；點功能時我會帶你去登入頁。');
+  }
+
+  function open(show){
+    state.open = show;
+    const p = document.querySelector('.aichat-panel');
+    const b = document.querySelector('#aiFab');
+    if (!p) return;
+    p.style.display = show ? '' : 'none';
+    b.style.display = show ? 'none' : '';
+    if (show) setTimeout(()=>document.getElementById('aiInput')?.focus(), 50);
+  }
+
+  return { mount, open, quick };
+})();
+
+// 自動掛載
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', ()=>AIChat.mount());
+} else {
+  AIChat.mount();
+}
+
 window.EmergencyActions = EmergencyActions;
 
 /* ============================ 對外暴露 ============================ */
