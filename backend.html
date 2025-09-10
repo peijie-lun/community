@@ -42,12 +42,39 @@
   <script> if (!ensureBackend()) { /* 已被導去登入或首頁 */ } </script>
 </head>
 <body>
-  <md-top-app-bar id="topbar">
-    <div slot="navigationIcon" style="padding-left:6px"><span class="material-symbols-outlined">apartment</span></div>
-    <div slot="headline" style="font-weight:900;letter-spacing:.4px">社區客服系統 · 管理後台</div>
+ <md-top-app-bar>
+    <div slot="navigationIcon" style="padding-left:6px">
+      <span class="material-symbols-outlined">admin_panel_settings</span>
+    </div>
+    <div slot="headline" style="font-weight:900;letter-spacing:.4px">管理後台</div>
 
-    <!-- 🔥 右上只放緊急四鍵 -->
-    <div slot="actionItems" class="emg-wrap">
+    <div slot="actionItems" style="display:flex; gap:8px; align-items:center;">
+      <!-- 後台首頁（回前台） -->
+      <md-icon-button aria-label="回首頁" title="回首頁" onclick="location.href='index.html'">
+        <span class="material-symbols-outlined">home</span>
+      </md-icon-button>
+
+      <!-- 帳號選單 -->
+      <md-menu id="userMenu" anchor="userBtn">
+        <md-menu-item disabled>
+          <div slot="headline" id="authName">訪客</div>
+          <div slot="supporting-text" id="authMail" class="muted">未登入</div>
+        </md-menu-item>
+        <md-divider></md-divider>
+        <md-menu-item id="menuLogin" onclick="gotoLogin('backend.html')">
+          <span slot="start" class="material-symbols-outlined">login</span>
+          <div slot="headline">登入（選擇身分）</div>
+        </md-menu-item>
+        <md-menu-item id="menuLogout" onclick="logout()" style="display:none">
+          <span slot="start" class="material-symbols-outlined">logout</span>
+          <div slot="headline">登出</div>
+        </md-menu-item>
+      </md-menu>
+      <md-icon-button id="userBtn" aria-label="帳號" title="帳號" onclick="userMenu.show()">
+        <span class="material-symbols-outlined">account_circle</span>
+      </md-icon-button>
+
+      <!-- 緊急四鍵（排在帳號之後） -->
       <md-assist-chip class="emg-chip" label="救護車(119)" onclick="EmergencyActions.call119()">
         <span class="material-symbols-outlined" slot="icon">ambulance</span>
       </md-assist-chip>
@@ -57,33 +84,7 @@
       <md-assist-chip class="emg-chip" label="報警(110)" onclick="EmergencyActions.call110()">
         <span class="material-symbols-outlined" slot="icon">siren</span>
       </md-assist-chip>
-      <md-assist-chip class="emg-chip" label="跌倒(模擬)" onclick="EmergencyActions.simFall()">
-      </md-assist-chip>
-
-      <!-- 回前台 -->
-      <md-icon-button id="goFront" aria-label="回前台" title="回前台" onclick="location.href='index.html'">
-        <span class="material-symbols-outlined">home</span>
-      </md-icon-button>
-
-      <!-- 帳號 -->
-      <md-menu id="userMenu" anchor="userBtn">
-        <md-menu-item disabled>
-          <div slot="headline" id="authName">使用者</div>
-          <div slot="supporting-text" id="authMail" class="muted">未登入</div>
-        </md-menu-item>
-        <md-divider></md-divider>
-        <md-menu-item id="menuLogin" onclick="gotoLogin('backend.html')" style="display:none">
-          <span slot="start" class="material-symbols-outlined">login</span>
-          <div slot="headline">登入（選擇身分）</div>
-        </md-menu-item>
-        <md-menu-item id="menuLogout" onclick="logout()">
-          <span slot="start" class="material-symbols-outlined">logout</span>
-          <div slot="headline">登出</div>
-        </md-menu-item>
-      </md-menu>
-      <md-icon-button id="userBtn" aria-label="帳號" title="帳號" onclick="userMenu.show()">
-        <span class="material-symbols-outlined">account_circle</span>
-      </md-icon-button>
+      <md-assist-chip class="emg-chip" label="跌倒(模擬)" onclick="EmergencyActions.simFall()"></md-assist-chip>
     </div>
   </md-top-app-bar>
 
