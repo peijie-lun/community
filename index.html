@@ -5,11 +5,12 @@
   <title>社區客服系統 · 首頁</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0a443f" />
- <link rel="manifest" href="manifest.webmanifest" />
-<link rel="icon" href="icon-192.png" />
-<link rel="apple-touch-icon" href="icon-192.png" />
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
   <script type="module">import 'https://esm.run/@material/web/all.js';</script>
@@ -29,6 +30,11 @@
     .kicker{opacity:.95;font-weight:600;line-height:1.9}
     .title{font-size:22px;font-weight:900;letter-spacing:.3px;margin:4px 0 8px}
     .items{line-height:1.9;font-weight:600;opacity:.95}
+
+    /* 右上角只顯示緊急四鍵 */
+    .emg-wrap{ display:flex; gap:8px; align-items:center; margin-right:6px; }
+    .emg-chip{ white-space:nowrap }
+    .muted{opacity:.66}
   </style>
 </head>
 <body class="app-shell">
@@ -36,35 +42,51 @@
     <div slot="navigationIcon" style="padding-left:6px"><span class="material-symbols-outlined">apartment</span></div>
     <div slot="headline" style="font-weight:900;letter-spacing:.4px">社區客服系統</div>
 
-    <md-menu id="userMenu" anchor="userBtn">
-      <md-menu-item disabled>
-        <div slot="headline" id="authName">訪客</div>
-        <div slot="supporting-text" id="authMail" class="muted">未登入</div>
-      </md-menu-item>
-      <md-divider></md-divider>
-      <md-menu-item id="menuLogin" onclick="gotoLogin()">
-        <span slot="start" class="material-symbols-outlined">login</span>
-        <div slot="headline">登入（選擇身分）</div>
-      </md-menu-item>
-      <md-menu-item id="menuLogout" onclick="logout()" style="display:none">
-        <span slot="start" class="material-symbols-outlined">logout</span>
-        <div slot="headline">登出</div>
-      </md-menu-item>
-    </md-menu>
-    <md-icon-button id="userBtn" slot="actionItems" aria-label="帳號" title="帳號" onclick="userMenu.show()">
-      <span class="material-symbols-outlined">account_circle</span>
-    </md-icon-button>
+    <!-- 🔥 緊急四鍵（只有這些在右上角） -->
+    <div slot="actionItems" class="emg-wrap">
+      <md-assist-chip class="emg-chip" label="救護車(119)" onclick="EmergencyActions.call119()">
+        <span class="material-symbols-outlined" slot="icon">ambulance</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="AED" onclick="EmergencyActions.aed()">
+        <span class="material-symbols-outlined" slot="icon">heart_plus</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="報警(110)" onclick="EmergencyActions.call110()">
+        <span class="material-symbols-outlined" slot="icon">siren</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="跌倒(模擬)" onclick="EmergencyActions.simFall()">
+      </md-assist-chip>
 
-    <!-- 管理後台：若未登入會先登入；若已登入但非管委會，當場阻擋 -->
-    <md-icon-button slot="actionItems" aria-label="管理後台" title="管理後台" onclick="return goBackendFromHome(event)">
-      <span class="material-symbols-outlined">admin_panel_settings</span>
-    </md-icon-button>
+      <!-- 管理後台 -->
+      <md-icon-button aria-label="管理後台" title="管理後台" onclick="return goBackendFromHome(event)">
+        <span class="material-symbols-outlined">admin_panel_settings</span>
+      </md-icon-button>
+
+      <!-- 帳號 -->
+      <md-menu id="userMenu" anchor="userBtn">
+        <md-menu-item disabled>
+          <div slot="headline" id="authName">訪客</div>
+          <div slot="supporting-text" id="authMail" class="muted">未登入</div>
+        </md-menu-item>
+        <md-divider></md-divider>
+        <md-menu-item id="menuLogin" onclick="gotoLogin()">
+          <span slot="start" class="material-symbols-outlined">login</span>
+          <div slot="headline">登入（選擇身分）</div>
+        </md-menu-item>
+        <md-menu-item id="menuLogout" onclick="logout()" style="display:none">
+          <span slot="start" class="material-symbols-outlined">logout</span>
+          <div slot="headline">登出</div>
+        </md-menu-item>
+      </md-menu>
+      <md-icon-button id="userBtn" aria-label="帳號" title="帳號" onclick="userMenu.show()">
+        <span class="material-symbols-outlined">account_circle</span>
+      </md-icon-button>
+    </div>
   </md-top-app-bar>
 
   <main class="container" style="padding:22px 0 28px">
     <div style="margin:8px 0 18px">
       <h2 style="font-weight:900;letter-spacing:.3px;margin:0">快速入口</h2>
-      <div class="muted" style="margin-top:6px">可瀏覽首頁；點功能會要求登入，登入後自動回到該功能。</div>
+      <div class="muted" style="margin-top:6px">右上角提供「緊急四鍵」。其他功能請由下方卡片進入。</div>
     </div>
 
     <section class="grid">
@@ -97,10 +119,15 @@
         <div class="badge">會議 / 活動</div>
         <div class="inner"><div class="kicker">📝 會議 / 活動</div><div class="title">議程與活動</div><div class="items">瀏覽 · 刪除</div></div>
       </a>
+
+      <a class="tile" onclick="return gotoProtected(event)" href="app.html#emergency" style="background-image:url('https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?q=80&w=1400&auto=format&fit=crop')">
+        <div class="badge">緊急</div>
+        <div class="inner"><div class="kicker">🚨 緊急</div><div class="title">緊急按鈕</div><div class="items">救護車 · AED · 報警</div></div>
+      </a>
     </section>
   </main>
 
-  <md-fab id="installCta" label="安裝 App" variant="secondary">
+  <md-fab id="installCta" label="安裝 App" variant="secondary" style="display:none">
     <span class="material-symbols-outlined" slot="icon">download</span>
   </md-fab>
 
@@ -109,8 +136,8 @@
     initPage('front');
 
     function goBackendFromHome(ev){
-      if (!isLoggedIn()) return gotoProtected(ev);           // 先登入
-      if (!hasRole('committee')) {                           // 已登入但非管委會
+      if (!isLoggedIn()) return gotoProtected(ev);
+      if (!hasRole('committee')) {
         ev.preventDefault();
         alert('管理後台僅限「管委會」使用。');
         return false;
