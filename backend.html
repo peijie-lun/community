@@ -5,12 +5,11 @@
   <title>社區客服系統 · 管理後台</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0a443f" />
- <link rel="manifest" href="manifest.webmanifest" />
-<link rel="icon" href="icon-192.png" />
-<link rel="apple-touch-icon" href="icon-192.png" />
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
   <script type="module">import 'https://esm.run/@material/web/all.js';</script>
@@ -31,43 +30,61 @@
     .panel-body{padding:18px}
     .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:10px 12px;border-bottom:1px solid #eee}
+    th,td{padding:10px 12px;border-bottom:1px solid #eee;vertical-align:top}
     th{text-align:left;font-weight:800}
     tbody tr:hover{background:#fafafa}
+
+    /* 右上角：只顯示緊急四鍵 */
+    .emg-wrap{ display:flex; gap:8px; align-items:center; margin-right:6px; }
+    .emg-chip{ white-space:nowrap }
   </style>
   <script src="index.js"></script>
-  <script>
-    // 一進頁就硬性守門（僅管委會）
-    if (!ensureBackend()) { /* 已被導去登入或首頁 */ }
-  </script>
+  <script> if (!ensureBackend()) { /* 已被導去登入或首頁 */ } </script>
 </head>
 <body>
   <md-top-app-bar id="topbar">
     <div slot="navigationIcon" style="padding-left:6px"><span class="material-symbols-outlined">apartment</span></div>
     <div slot="headline" style="font-weight:900;letter-spacing:.4px">社區客服系統 · 管理後台</div>
 
-    <md-icon-button id="goFront" slot="actionItems" aria-label="回前台" title="回前台" onclick="location.href='index.html'">
-      <span class="material-symbols-outlined">home</span>
-    </md-icon-button>
+    <!-- 🔥 右上只放緊急四鍵 -->
+    <div slot="actionItems" class="emg-wrap">
+      <md-assist-chip class="emg-chip" label="救護車(119)" onclick="EmergencyActions.call119()">
+        <span class="material-symbols-outlined" slot="icon">ambulance</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="AED" onclick="EmergencyActions.aed()">
+        <span class="material-symbols-outlined" slot="icon">heart_plus</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="報警(110)" onclick="EmergencyActions.call110()">
+        <span class="material-symbols-outlined" slot="icon">siren</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="跌倒(模擬)" onclick="EmergencyActions.simFall()">
+      </md-assist-chip>
 
-    <md-menu id="userMenu" anchor="userBtn">
-      <md-menu-item disabled>
-        <div slot="headline" id="authName">使用者</div>
-        <div slot="supporting-text" id="authMail" class="muted">未登入</div>
-      </md-menu-item>
-      <md-divider></md-divider>
-      <md-menu-item id="menuLogin" onclick="gotoLogin('backend.html')" style="display:none">
-        <span slot="start" class="material-symbols-outlined">login</span>
-        <div slot="headline">登入（選擇身分）</div>
-      </md-menu-item>
-      <md-menu-item id="menuLogout" onclick="logout()">
-        <span slot="start" class="material-symbols-outlined">logout</span>
-        <div slot="headline">登出</div>
-      </md-menu-item>
-    </md-menu>
-    <md-icon-button id="userBtn" slot="actionItems" aria-label="帳號" title="帳號" onclick="userMenu.show()">
-      <span class="material-symbols-outlined">account_circle</span>
-    </md-icon-button>
+      <!-- 回前台 -->
+      <md-icon-button id="goFront" aria-label="回前台" title="回前台" onclick="location.href='index.html'">
+        <span class="material-symbols-outlined">home</span>
+      </md-icon-button>
+
+      <!-- 帳號 -->
+      <md-menu id="userMenu" anchor="userBtn">
+        <md-menu-item disabled>
+          <div slot="headline" id="authName">使用者</div>
+          <div slot="supporting-text" id="authMail" class="muted">未登入</div>
+        </md-menu-item>
+        <md-divider></md-divider>
+        <md-menu-item id="menuLogin" onclick="gotoLogin('backend.html')" style="display:none">
+          <span slot="start" class="material-symbols-outlined">login</span>
+          <div slot="headline">登入（選擇身分）</div>
+        </md-menu-item>
+        <md-menu-item id="menuLogout" onclick="logout()">
+          <span slot="start" class="material-symbols-outlined">logout</span>
+          <div slot="headline">登出</div>
+        </md-menu-item>
+      </md-menu>
+      <md-icon-button id="userBtn" aria-label="帳號" title="帳號" onclick="userMenu.show()">
+        <span class="material-symbols-outlined">account_circle</span>
+      </md-icon-button>
+    </div>
   </md-top-app-bar>
 
   <main class="container" style="padding:22px 0 28px">
@@ -76,6 +93,7 @@
       <div class="muted" style="margin-top:6px">（本區僅限管委會使用）</div>
     </div>
 
+    <!-- 維持原本的模組卡片入口 -->
     <section id="feature-grid" class="grid" aria-live="polite">
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1581090463728-28b1b3a4f50b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('announcement')">
         <div class="badge">公告 / 投票</div><div class="inner"><div class="title">社區公告與投票</div></div>
@@ -95,6 +113,10 @@
       <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('meeting')">
         <div class="badge">會議 / 活動</div><div class="inner"><div class="title">議程與活動</div></div>
       </div>
+      <!-- 緊急服務也保留為一個模組 -->
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('emergency')">
+        <div class="badge">緊急服務</div><div class="inner"><div class="title">緊急事件紀錄 / 匯出</div></div>
+      </div>
     </section>
 
     <section class="panel" style="margin-top:18px">
@@ -103,9 +125,16 @@
           <md-filled-button id="btnBack" leading-icon="arrow_back" onclick="backToGrid()" style="display:none">
             <span class="material-symbols-outlined" slot="icon">arrow_back</span>返回模組列表
           </md-filled-button>
+
           <md-filled-tonal-button id="btnAdd" style="display:none">
             <span class="material-symbols-outlined" slot="icon">add</span>新增
           </md-filled-tonal-button>
+
+          <!-- 只有緊急服務會顯示 -->
+          <md-outlined-button id="btnExport" style="display:none">
+            <span class="material-symbols-outlined" slot="icon">download</span>匯出 CSV
+          </md-outlined-button>
+
           <span id="tabHint" class="muted"></span>
         </div>
         <div id="tab-content"></div>
@@ -120,6 +149,7 @@
       document.getElementById('feature-grid').style.display='';
       document.getElementById('btnBack').style.display='none';
       document.getElementById('btnAdd').style.display='none';
+      document.getElementById('btnExport').style.display='none';
       document.getElementById('tabHint').textContent='';
       document.getElementById('tab-content').innerHTML='';
       scrollTo({top:0, behavior:'smooth'});
@@ -128,18 +158,18 @@
 
     let currentTab = '';
     function gotoTab(key){
-      // 此頁已確保是管委會，直接顯示
       currentTab = key;
       document.getElementById('feature-grid').style.display='none';
       document.getElementById('btnBack').style.display='';
       document.getElementById('btnAdd').style.display='';
+      document.getElementById('btnExport').style.display = (key==='emergency') ? '' : 'none';
       document.getElementById('tabHint').textContent = '當前模組：' + ({
         announcement:'公告 / 投票', maintenance:'維修 / 客服', finance:'帳務 / 收費',
-        resident:'住戶 / 人員', visitor:'訪客 / 包裹', meeting:'會議 / 活動'
+        resident:'住戶 / 人員', visitor:'訪客 / 包裹', meeting:'會議 / 活動',
+        emergency:'緊急服務'
       }[key] || key);
 
       document.getElementById('btnAdd').onclick = () => {
-        // 新增只在後台，直接執行（已是管委會）
         if (key==='announcement') {
           const title = prompt('公告標題：'); if (!title) return;
           Ann.create({ title, content:'' });
@@ -161,7 +191,17 @@
         } else if (key==='meeting') {
           const topic = prompt('會議主題：'); if (!topic) return;
           Meet.create({ topic, time:'', location:'' });
+        } else if (key==='emergency') {
+          const type = prompt('事件類型（例如：救護車 119 / 報警 110 / AED / 其他）：'); if (!type) return;
+          const note = prompt('備註（選填）：') || '';
+          Emergency.create({ type, note });
         }
+      };
+
+      document.getElementById('btnExport').onclick = () => {
+        if (key!=='emergency') return;
+        const rows = Emergency.list();
+        exportCSV(rows, `emergencies_${new Date().toISOString().slice(0,10)}.csv`);
       };
 
       renderTabContent(key);
@@ -269,9 +309,45 @@
               `).join('')}</tbody>
             </table>
           </div>`;
+      } else if(tab==='emergency'){
+        const rows = Emergency.list();
+        el.innerHTML = `
+          <div style="overflow:auto">
+            <table>
+              <thead>
+                <tr><th>類型</th><th>時間</th><th>使用者</th><th>紀錄</th><th>動作</th></tr>
+              </thead>
+              <tbody>${rows.map(x=>`
+                <tr>
+                  <td>${x.type||''}</td>
+                  <td>${(x.time||'').toString().slice(0,16).replace('T',' ')}</td>
+                  <td>${x.by||''}</td>
+                  <td>${x.note||''}</td>
+                  <td>
+                    <md-text-button style="color:#b00020" onclick="(function(){ if(confirm('刪除此緊急紀錄？')) Emergency.remove('${x.id}'); })()">刪除</md-text-button>
+                  </td>
+                </tr>
+              `).join('')}</tbody>
+            </table>
+          </div>
+          <div class="muted" style="margin-top:8px">＊資料目前儲存在本機 LocalStorage；若要推播、簡訊、外呼，請串接後端服務。</div>
+        `;
       } else {
         el.innerHTML = `<div class="muted">未支援的模組：${tab}</div>`;
       }
+    }
+
+    // 匯出工具（CSV）
+    function exportCSV(rows, filename='export.csv'){
+      const header = ['type','time','by','note'];
+      const esc = (s)=>('"'+String(s??'').replace(/"/g,'""')+'"');
+      const body = rows.map(r=>[r.type, r.time, r.by, r.note].map(esc).join(',')).join('\n');
+      const csv = header.join(',') + '\n' + body;
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 500);
     }
   </script>
 </body>
