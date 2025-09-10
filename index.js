@@ -103,26 +103,50 @@ function updateAuthUI() {
   if (logoutEl) logoutEl.style.display = isLoggedIn() ? "" : "none";
 }
 
-// 右上角安裝按鈕（會廣播可見狀態，保留與 AI 客服共存機制）
+/* ============================ PWA 安裝（固定右上角，強制定位） ============================ */
 function initPWA(buttonId = "installCta") {
   const btn = document.getElementById(buttonId);
   if (!btn) return;
 
-  // 直接用 inline style 壓過各頁面的 #installCta CSS（不論原本是否在右下）
+  // 1) 把按鈕搬到 <body> 末端，避免被外層容器定位/overflow 影響
+  try {
+    if (btn.parentElement !== document.body) {
+      document.body.appendChild(btn);
+    }
+  } catch {}
+
+  // 2) 注入一段高優先權樣式，確保右上角固定
+  if (!document.getElementById('installCta-force-style')) {
+    const st = document.createElement('style');
+    st.id = 'installCta-force-style';
+    st.textContent = `
+      #installCta{
+        position: fixed !important;
+        right: 16px !important;
+        left: auto !important;
+        top: calc(env(safe-area-inset-top) + 14px) !important;
+        bottom: auto !important;
+        z-index: 2147483600 !important;
+      }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // 3) 再用 inline style 雙保險
   Object.assign(btn.style, {
     position: 'fixed',
     right: '16px',
-    top: 'calc(env(safe-area-inset-top) + 72px)', // 頂端 App Bar 約 64px，再留點間距
-    bottom: '',   // 取消任何 bottom 設定
-    zIndex: 1200, // 比內容高，但低於 AI 客服面板（它是 2147483000）
-    display: 'none' // 預設隱藏，待事件顯示
+    left: '',
+    top: 'calc(env(safe-area-inset-top) + 14px)',
+    bottom: '',
+    zIndex: 2147483600
   });
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(()=>{});
   }
 
-  // 廣播 FAB 可見狀態（AI 客服雖然在右下，但沿用此機制不影響）
+  // 廣播 FAB 可見狀態（保留與 AI 客服共存機制，雖然現在不重疊）
   const notify = () => {
     const visible = btn && getComputedStyle(btn).display !== 'none';
     window.dispatchEvent(new CustomEvent('installCta-visibility', { detail: { visible } }));
@@ -136,15 +160,16 @@ function initPWA(buttonId = "installCta") {
     e.preventDefault();
     deferredPrompt = e;
     btn.style.display = "";        // 顯示右上角按鈕
-    btn.removeAttribute("disabled");
-    btn.title = "安裝此應用";
     notify();
+    // 強制一次定位（某些瀏覽器 first paint 會被外部樣式覆蓋）
+    forceTopRight(btn);
   });
 
-  // iOS PWA 安裝提示（無 beforeinstallprompt）
+  // iOS（無 beforeinstallprompt）
   if (isIOS && !isStandalone) {
-    btn.style.display = "";        // 顯示右上角按鈕
+    btn.style.display = "";
     notify();
+    forceTopRight(btn);
   }
 
   btn.addEventListener("click", async () => {
@@ -157,7 +182,7 @@ function initPWA(buttonId = "installCta") {
         deferredPrompt.prompt();
         const c = await deferredPrompt.userChoice;
         if (c?.outcome !== "dismissed") {
-          btn.style.display = "none"; // 已安裝後隱藏
+          btn.style.display = "none";
           notify();
         }
       } finally {
@@ -178,17 +203,28 @@ function initPWA(buttonId = "installCta") {
     notify();
   });
 
-  // 初次通知 & 視窗變動時也檢查（若樣式被外部覆蓋仍能恢復）
+  // 初次通知 & 視窗變動時也檢查
   notify();
-  window.addEventListener('resize', () => {
-    // 重新套用一下關鍵定位（避免外部 CSS 影響）
-    btn.style.right = '16px';
-    btn.style.top = 'calc(env(safe-area-inset-top) + 72px)';
-    btn.style.bottom = '';
-    notify();
-  });
+  window.addEventListener('resize', () => { forceTopRight(btn); notify(); });
+
+  // 最後再補一次（避免 layout 稍晚才完成）
+  setTimeout(()=>{ forceTopRight(btn); notify(); }, 150);
+  setTimeout(()=>{ forceTopRight(btn); notify(); }, 600);
 }
 
+function forceTopRight(btn){
+  if (!btn) return;
+  try {
+    // 再次搬移到 body 最末（若被某些框架重渲染）
+    if (btn.parentElement !== document.body) document.body.appendChild(btn);
+  } catch {}
+  btn.style.position = 'fixed';
+  btn.style.right = '16px';
+  btn.style.left = '';
+  btn.style.top = 'calc(env(safe-area-inset-top) + 14px)';
+  btn.style.bottom = '';
+  btn.style.zIndex = 2147483600;
+}
 
 /* ============================ 頁面初始化 ============================ */
 function initPage(kind) { updateAuthUI(); initPWA("installCta"); if (kind === 'backend') ensureBackend(); }
@@ -427,7 +463,6 @@ window.speak = speak;
 
 /* =========================================================================
  * AI Chat Widget（右下角）— 未登入可開面板，但功能必須先登入
- * 與右下安裝 FAB 共存（自動錯位）
  * ========================================================================= */
 const AIChat = (() => {
   const S = `
@@ -487,7 +522,6 @@ const AIChat = (() => {
       </div>
     </div>`;
 
-  // 依身分產生卡片
   function cardsFor(role){
     const c = [];
     const common = { title:'《常用功能》', links: [
@@ -522,7 +556,6 @@ const AIChat = (() => {
     return c;
   }
 
-  // 登入守門：未登入先導去 auth.html
   function requireLoginThen(task){
     if (isLoggedIn()) { task(); return; }
     pushBot('請先登入後再使用此功能，為您導向登入頁…');
@@ -530,7 +563,6 @@ const AIChat = (() => {
     gotoLogin(next);
   }
 
-  // 快捷行為（包裝登入守門）
   const QUICK_ACTIONS = {
     goto_announcement(){ requireLoginThen(()=> location.href = 'app.html#announcement'); },
     goto_maintenance(){ requireLoginThen(()=> location.href = 'app.html#maintenance'); },
@@ -621,19 +653,6 @@ const AIChat = (() => {
     else setTimeout(()=>pushBot('（尚未定義的動作）'), 120);
   }
 
-  // 與安裝 FAB 共存的排版
-  function reflowDock(){
-    const wrap = document.querySelector('.aichat-wrap');
-    const fab  = document.getElementById('installCta');
-    if (!wrap) return;
-    let offset = 16;
-    if (fab && getComputedStyle(fab).display !== 'none') {
-      const h = fab.getBoundingClientRect().height || 56;
-      offset = Math.max(16, h + 24);
-    }
-    wrap.style.bottom = offset + 'px';
-  }
-
   function mount(){
     if (state.booted) return; state.booted = true;
     const st = document.createElement('style'); st.textContent = S; document.head.appendChild(st);
@@ -658,12 +677,6 @@ const AIChat = (() => {
 
     renderCards();
     pushBot('嗨～這裡是 AI 客服的「社區功能快捷」。未登入可先瀏覽與發問；點功能時我會先帶你去登入頁。');
-
-    // 監聽 FAB 顯示與視窗變動
-    reflowDock();
-    window.addEventListener('installCta-visibility', reflowDock);
-    window.addEventListener('resize', reflowDock);
-    setTimeout(reflowDock, 250);
   }
 
   function open(show){
@@ -676,7 +689,7 @@ const AIChat = (() => {
     if (show) setTimeout(()=>document.getElementById('aiInput')?.focus(), 50);
   }
 
-  return { mount, open, quick, reflowDock };
+  return { mount, open, quick };
 })();
 
 // 自動掛載
