@@ -103,19 +103,15 @@ function updateAuthUI() {
   if (logoutEl) logoutEl.style.display = isLoggedIn() ? "" : "none";
 }
 
-/* ============================ PWA 安裝（固定右上角，強制定位） ============================ */
+/* ============================ PWA 安裝（固定右下，位於 AI 客服下方） ============================ */
 function initPWA(buttonId = "installCta") {
   const btn = document.getElementById(buttonId);
   if (!btn) return;
 
-  // 1) 把按鈕搬到 <body> 末端，避免被外層容器定位/overflow 影響
-  try {
-    if (btn.parentElement !== document.body) {
-      document.body.appendChild(btn);
-    }
-  } catch {}
+  // 確保在 <body> 末端，不受容器 overflow/定位影響
+  try { if (btn.parentElement !== document.body) document.body.appendChild(btn); } catch {}
 
-  // 2) 注入一段高優先權樣式，確保右上角固定
+  // 高優先權樣式：固定右下
   if (!document.getElementById('installCta-force-style')) {
     const st = document.createElement('style');
     st.id = 'installCta-force-style';
@@ -124,21 +120,23 @@ function initPWA(buttonId = "installCta") {
         position: fixed !important;
         right: 16px !important;
         left: auto !important;
-        top: calc(env(safe-area-inset-top) + 14px) !important;
-        bottom: auto !important;
+        bottom: 16px !important;
+        top: auto !important;
         z-index: 2147483600 !important;
       }
+      /* install 顯示時，抬高 AI 客服，讓「安裝」在客服下方 */
+      body.has-install-fab .aichat-wrap{ bottom: 84px !important; } /* 56 + 12 + 16 */
     `;
     document.head.appendChild(st);
   }
 
-  // 3) 再用 inline style 雙保險
+  // inline 雙保險
   Object.assign(btn.style, {
     position: 'fixed',
     right: '16px',
     left: '',
-    top: 'calc(env(safe-area-inset-top) + 14px)',
-    bottom: '',
+    bottom: '16px',
+    top: '',
     zIndex: 2147483600
   });
 
@@ -146,10 +144,12 @@ function initPWA(buttonId = "installCta") {
     navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(()=>{});
   }
 
-  // 廣播 FAB 可見狀態（保留與 AI 客服共存機制，雖然現在不重疊）
   const notify = () => {
     const visible = btn && getComputedStyle(btn).display !== 'none';
+    // 廣播給頁面（讓 index.html/AI 客服調整）
     window.dispatchEvent(new CustomEvent('installCta-visibility', { detail: { visible } }));
+    // 切換 body class（抬高 AI 客服）
+    document.body.classList.toggle('has-install-fab', !!visible);
   };
 
   let deferredPrompt = null;
@@ -159,17 +159,14 @@ function initPWA(buttonId = "installCta") {
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    btn.style.display = "";        // 顯示右上角按鈕
+    btn.style.display = "";        // 顯示右下按鈕
     notify();
-    // 強制一次定位（某些瀏覽器 first paint 會被外部樣式覆蓋）
-    forceTopRight(btn);
   });
 
   // iOS（無 beforeinstallprompt）
   if (isIOS && !isStandalone) {
     btn.style.display = "";
     notify();
-    forceTopRight(btn);
   }
 
   btn.addEventListener("click", async () => {
@@ -203,30 +200,10 @@ function initPWA(buttonId = "installCta") {
     notify();
   });
 
-  // 初次通知 & 視窗變動時也檢查
+  // 初次通知
   notify();
-  window.addEventListener('resize', () => { forceTopRight(btn); notify(); });
-
-  // 最後再補一次（避免 layout 稍晚才完成）
-  setTimeout(()=>{ forceTopRight(btn); notify(); }, 150);
-  setTimeout(()=>{ forceTopRight(btn); notify(); }, 600);
 }
 
-function forceTopRight(btn){
-  if (!btn) return;
-  try {
-    // 再次搬移到 body 最末（若被某些框架重渲染）
-    if (btn.parentElement !== document.body) document.body.appendChild(btn);
-  } catch {}
-  btn.style.position = 'fixed';
-  btn.style.right = '16px';
-  btn.style.left = '';
-  btn.style.top = 'calc(env(safe-area-inset-top) + 14px)';
-  btn.style.bottom = '';
-  btn.style.zIndex = 2147483600;
-}
-
-/* ============================ 頁面初始化 ============================ */
 function initPage(kind) { updateAuthUI(); initPWA("installCta"); if (kind === 'backend') ensureBackend(); }
 window.initPage = initPage;
 
@@ -300,7 +277,7 @@ const DB = {
   }
 };
 
-/* ============================ 模組 API ============================ */
+/* ============================ 模組 API（略，與你現有相同） ============================ */
 const Ann = { list:()=>DB.list("announcements"), get:(id)=>DB.find("announcements", id),
   create({ title, content, options = ["同意","反對"] }) {
     const u = getUser() || {};
@@ -462,7 +439,7 @@ window.Emergency = Emergency;
 window.speak = speak;
 
 /* =========================================================================
- * AI Chat Widget（右下角）— 未登入可開面板，但功能必須先登入
+ * AI Chat Widget（右下）— 未登入可開面板，但功能必須先登入
  * ========================================================================= */
 const AIChat = (() => {
   const S = `
