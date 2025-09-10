@@ -103,13 +103,26 @@ function updateAuthUI() {
   if (logoutEl) logoutEl.style.display = isLoggedIn() ? "" : "none";
 }
 
-/* ============================ PWA 安裝（支援與 AI 客服共存） ============================ */
+// 右上角安裝按鈕（會廣播可見狀態，保留與 AI 客服共存機制）
 function initPWA(buttonId = "installCta") {
   const btn = document.getElementById(buttonId);
   if (!btn) return;
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(()=>{});
 
-  // 廣播 FAB 可見狀態，讓 AI 客服重新排版
+  // 直接用 inline style 壓過各頁面的 #installCta CSS（不論原本是否在右下）
+  Object.assign(btn.style, {
+    position: 'fixed',
+    right: '16px',
+    top: 'calc(env(safe-area-inset-top) + 72px)', // 頂端 App Bar 約 64px，再留點間距
+    bottom: '',   // 取消任何 bottom 設定
+    zIndex: 1200, // 比內容高，但低於 AI 客服面板（它是 2147483000）
+    display: 'none' // 預設隱藏，待事件顯示
+  });
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(()=>{});
+  }
+
+  // 廣播 FAB 可見狀態（AI 客服雖然在右下，但沿用此機制不影響）
   const notify = () => {
     const visible = btn && getComputedStyle(btn).display !== 'none';
     window.dispatchEvent(new CustomEvent('installCta-visibility', { detail: { visible } }));
@@ -120,34 +133,62 @@ function initPWA(buttonId = "installCta") {
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 
   window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault(); deferredPrompt = e;
-    btn.style.display = ""; btn.removeAttribute("disabled"); btn.title = "安裝此應用";
+    e.preventDefault();
+    deferredPrompt = e;
+    btn.style.display = "";        // 顯示右上角按鈕
+    btn.removeAttribute("disabled");
+    btn.title = "安裝此應用";
     notify();
   });
-  if (isIOS && !isStandalone) { btn.style.display = ""; notify(); }
+
+  // iOS PWA 安裝提示（無 beforeinstallprompt）
+  if (isIOS && !isStandalone) {
+    btn.style.display = "";        // 顯示右上角按鈕
+    notify();
+  }
 
   btn.addEventListener("click", async () => {
-    if (location.protocol === "file:") return alert("安裝需要從 http(s) 或 localhost 開啟。");
+    if (location.protocol === "file:") {
+      alert("安裝需要從 http(s) 或 localhost 開啟。");
+      return;
+    }
     if (deferredPrompt) {
       try {
         deferredPrompt.prompt();
         const c = await deferredPrompt.userChoice;
-        if (c?.outcome !== "dismissed") { btn.style.display = "none"; notify(); }
-      } finally { deferredPrompt = null; }
+        if (c?.outcome !== "dismissed") {
+          btn.style.display = "none"; // 已安裝後隱藏
+          notify();
+        }
+      } finally {
+        deferredPrompt = null;
+      }
       return;
     }
-    if (isIOS && !isStandalone) return alert("Safari → 分享 → 加入主畫面");
+    if (isIOS && !isStandalone) {
+      alert("Safari → 分享 → 加入主畫面");
+      return;
+    }
     alert("請使用瀏覽器的「安裝」選項安裝。");
   });
 
   window.addEventListener("appinstalled", () => {
-    deferredPrompt = null; btn.style.display = "none"; notify();
+    deferredPrompt = null;
+    btn.style.display = "none";
+    notify();
   });
 
-  // 初次通知 & 視窗變動時也檢查
+  // 初次通知 & 視窗變動時也檢查（若樣式被外部覆蓋仍能恢復）
   notify();
-  window.addEventListener('resize', notify);
+  window.addEventListener('resize', () => {
+    // 重新套用一下關鍵定位（避免外部 CSS 影響）
+    btn.style.right = '16px';
+    btn.style.top = 'calc(env(safe-area-inset-top) + 72px)';
+    btn.style.bottom = '';
+    notify();
+  });
 }
+
 
 /* ============================ 頁面初始化 ============================ */
 function initPage(kind) { updateAuthUI(); initPWA("installCta"); if (kind === 'backend') ensureBackend(); }
