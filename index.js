@@ -590,7 +590,6 @@ window.gotoProtected = gotoProtected;
 window.canAccessBackend = canAccessBackend;
 window.initPage = initPage;
 window.updateAuthUI = updateAuthUI;
-
 window.DB = DB;
 window.Ann = Ann;
 window.Maint = Maint;
