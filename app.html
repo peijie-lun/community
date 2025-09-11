@@ -92,6 +92,12 @@
       <md-outlined-button id="btnEditSelf" style="display:none">
         <span class="material-symbols-outlined" slot="icon">edit</span>編輯我的資料
       </md-outlined-button>
+
+      <!-- 新增：訪客/包裹切換（預設隱藏，僅在「訪客 / 包裹」分頁顯示） -->
+      <md-outlined-button id="btnToggleVP" style="display:none">
+        <span class="material-symbols-outlined" slot="icon">inventory_2</span>
+        <span id="btnToggleVPText">顯示包裹</span>
+      </md-outlined-button>
     </div>
 
     <section class="panel">
@@ -258,6 +264,15 @@
       }
     };
 
+    // ------- 訪客/包裹切換狀態與包裹欄位 -------
+    let VIEW_PKGS = false;
+    const PKG_COLS = [
+      { key: (r)=> r.tracking || '(無單號)', label: '單號/識別' },
+      { key: 'room', label: '房號', width: 120 },
+      { key: (r)=> r.receivedAt?.slice(0,16).replace('T',' ') || '', label: '進場', width: 170 },
+      { key: (r)=> r.pickedAt?.slice(0,16).replace('T',' ') || '',  label: '離場', width: 170 }
+    ];
+
     // ------- 緊急模組：大按鈕（仍保留示意；真實操作用首頁四鍵） -------
     function renderEmergencyButtons(show){
       const area = document.getElementById('emgArea');
@@ -320,22 +335,42 @@
 
       // head
       const thead = document.getElementById('thead');
-      thead.innerHTML = `<tr>${mod.columns.map(c=>`<th${c.width?` style="width:${c.width}px"`:''}>${c.label}</th>`).join('')}</tr>`;
+      const cols = (key === 'visitor' && VIEW_PKGS) ? PKG_COLS : mod.columns;
+      thead.innerHTML = `<tr>${cols.map(c=>`<th${c.width?` style="width:${c.width}px"`:''}>${c.label}</th>`).join('')}</tr>`;
 
       // data
       const kw = document.getElementById('searchBox').value.trim().toLowerCase();
-      const data = mod.list().filter(row => !kw || JSON.stringify(row).toLowerCase().includes(kw));
+      const raw = (key === 'visitor' && VIEW_PKGS)
+        ? Pack.list().map(p => ({
+            id: p.id,
+            tracking: p.tracking || '',
+            room: p.room || '',
+            receivedAt: p.receivedAt || '',
+            pickedAt: p.pickedAt || ''
+          }))
+        : mod.list();
+      const data = raw.filter(row => !kw || JSON.stringify(row).toLowerCase().includes(kw));
 
       // body
       const tbody = document.getElementById('tbody');
       tbody.innerHTML = data.map(r=>{
-        const tds = mod.columns.map(c=>{
+        const tds = cols.map(c=>{
           if (c.key === '_actions') return `<td class="actions">${mod.rowActions(r) || ''}</td>`;
           const val = (typeof c.key === 'function') ? c.key(r) : (r[c.key] ?? '');
           return `<td>${val===''?'<span class="muted">—</span>':val}</td>`;
         }).join('');
         return `<tr data-id="${r.id}">${tds}</tr>`;
-      }).join('') || `<tr><td colspan="${mod.columns.length}" class="muted" style="text-align:center;padding:22px">目前沒有資料</td></tr>`;
+      }).join('') || `<tr><td colspan="${cols.length}" class="muted" style="text-align:center;padding:22px">目前沒有資料</td></tr>`;
+
+      // 切換鈕顯示/文字
+      const toggleBtn = document.getElementById('btnToggleVP');
+      const toggleText = document.getElementById('btnToggleVPText');
+      if (key === 'visitor') {
+        toggleBtn.style.display = '';
+        toggleText.textContent = VIEW_PKGS ? '顯示訪客' : '顯示包裹';
+      } else {
+        toggleBtn.style.display = 'none';
+      }
     }
 
     // 事件委派：列上的按鈕（僅 vendor 的維修會觸發）
@@ -377,6 +412,12 @@
       if (phone==null) return;
 
       Resi.update({ id: me.id, name, room, phone });
+    });
+
+    // 新增：訪客/包裹切換按鈕
+    document.getElementById('btnToggleVP').addEventListener('click', ()=>{
+      VIEW_PKGS = !VIEW_PKGS;
+      render();
     });
 
     // 啟動
