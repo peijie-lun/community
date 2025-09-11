@@ -1,6 +1,61 @@
 /** ======================================================================
- * index.js ─ 登入/權限、PWA、LocalStorage DB、各模組 API、緊急動作、AI 客服
+ * index.js ─ 登入/權限、PWA、Supabase + LocalStorage 混合快取、各模組 API、緊急動作、AI 客服
  * ====================================================================== */
+
+/* ============================ Supabase 連線設定 ============================ */
+/* ⚠️ 將下列兩行改成你的專案設定（只放 anon public key，千萬不要放 service key） */
+const SUPABASE_URL = 'https://oyydhfvgtmghvnbkvczr.supabase.co';   // ← 換成你的
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95eWRoZnZndG1naHZuYmt2Y3pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1OTMwMTIsImV4cCI6MjA3MzE2OTAxMn0.fgz_Vl7bZ1rtrttOAQcTlymMgHfhiY2NDo3qEnBT1og';            // ← 換成你的 anon public key
+
+let supa = null;
+async function supaInit(){
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  supa = createClient(SUPABASE_URL, SUPABASE_KEY);
+  return supa;
+}
+const getSupa = () => supa;
+const hasSupa = () => !!supa;
+
+const TABLES = [
+  'announcements','maintenance','fees','residents',
+  'visitors','packages','meetings','emergencies'
+];
+
+const SB = {
+  async all(table){
+    // 依表名選擇正確的排序欄位；沒有就不排序
+    const ORDER_MAP = {
+      announcements: 'time',
+      maintenance : 'time',
+      visitors    : 'in',          // 訪客進場時間
+      packages    : 'receivedAt',  // 包裹收件時間
+      meetings    : 'time',
+      emergencies : 'time'
+    };
+
+    let query = supa.from(table).select('*');
+    const key = ORDER_MAP[table];
+    if (key) query = query.order(key, { ascending: true });
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+  async insert(table, rec){
+    const { data, error } = await supa.from(table).insert(rec).select('*').single();
+    if (error) throw error; return data;
+  },
+  async update(table, id, rec){
+    const { data, error } = await supa.from(table).update(rec).eq('id', id).select('*').single();
+    if (error) throw error; return data;
+  },
+  async remove(table, id){
+    const { error } = await supa.from(table).delete().eq('id', id);
+    if (error) throw error; return true;
+  }
+};
+
 
 /* ============================ 身分狀態 ============================ */
 const AUTH_KEY = "demo_auth_user";
@@ -108,10 +163,8 @@ function initPWA(buttonId = "installCta") {
   const btn = document.getElementById(buttonId);
   if (!btn) return;
 
-  // 確保在 <body> 末端，不受容器 overflow/定位影響
   try { if (btn.parentElement !== document.body) document.body.appendChild(btn); } catch {}
 
-  // 高優先權樣式：固定右下
   if (!document.getElementById('installCta-force-style')) {
     const st = document.createElement('style');
     st.id = 'installCta-force-style';
@@ -124,13 +177,11 @@ function initPWA(buttonId = "installCta") {
         top: auto !important;
         z-index: 2147483600 !important;
       }
-      /* install 顯示時，抬高 AI 客服，讓「安裝」在客服下方 */
-      body.has-install-fab .aichat-wrap{ bottom: 84px !important; } /* 56 + 12 + 16 */
+      body.has-install-fab .aichat-wrap{ bottom: 84px !important; }
     `;
     document.head.appendChild(st);
   }
 
-  // inline 雙保險
   Object.assign(btn.style, {
     position: 'fixed',
     right: '16px',
@@ -146,9 +197,7 @@ function initPWA(buttonId = "installCta") {
 
   const notify = () => {
     const visible = btn && getComputedStyle(btn).display !== 'none';
-    // 廣播給頁面（讓 index.html/AI 客服調整）
     window.dispatchEvent(new CustomEvent('installCta-visibility', { detail: { visible } }));
-    // 切換 body class（抬高 AI 客服）
     document.body.classList.toggle('has-install-fab', !!visible);
   };
 
@@ -159,11 +208,10 @@ function initPWA(buttonId = "installCta") {
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    btn.style.display = "";        // 顯示右下按鈕
+    btn.style.display = "";
     notify();
   });
 
-  // iOS（無 beforeinstallprompt）
   if (isIOS && !isStandalone) {
     btn.style.display = "";
     notify();
@@ -200,7 +248,6 @@ function initPWA(buttonId = "installCta") {
     notify();
   });
 
-  // 初次通知
   notify();
 }
 
@@ -213,9 +260,9 @@ const nowISO = () => new Date().toISOString();
 const todayISO = () => new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
 const deepClone = (o) => JSON.parse(JSON.stringify(o));
 
-/* ============================ LocalStorage DB ============================ */
+/* ============================ Local Cache（混合快取） ============================ */
 const DB_KEY = "kms_db";
-const DB_VER = 2;
+const DB_VER = 3;
 
 const DEFAULT_DB = () => ({
   ver: DB_VER,
@@ -253,157 +300,166 @@ const DB = {
     }
   },
   save(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); },
-  reset() { const db = DEFAULT_DB(); DB._seed(db); DB.save(db); dispatchEvent(new CustomEvent("dbchange", { detail: { module: "all" } })); },
+
   list(module) { return deepClone(DB.load()[module] || []); },
   find(module, id) { return deepClone((DB.load()[module] || []).find(x => x.id === id) || null); },
-  upsert(module, record) {
+
+  async upsert(module, record) {
+    const table = module;
+    let saved = record;
+
+    if (hasSupa()) {
+      if (!record.id) {                // insert
+        saved = await SB.insert(table, record);
+      } else {                         // update
+        saved = await SB.update(table, record.id, record);
+      }
+    } else {
+      if (!record.id) record.id = uid();
+    }
+
     const db = DB.load(); const arr = db[module] || (db[module] = []);
-    if (!record.id) record.id = uid();
-    const idx = arr.findIndex(x => x.id === record.id);
-    if (idx >= 0) arr[idx] = deepClone(record); else arr.push(deepClone(record));
-    DB.save(db); dispatchEvent(new CustomEvent("dbchange", { detail: { module } }));
-    return record.id;
+    const idx = arr.findIndex(x => x.id === (saved.id || record.id));
+    if (idx >= 0) arr[idx] = deepClone(saved);
+    else arr.push(deepClone(saved));
+    DB.save(db);
+    dispatchEvent(new CustomEvent("dbchange", { detail: { module } }));
+    return saved.id;
   },
-  remove(module, id) {
+
+  async remove(module, id) {
+    if (hasSupa()) await SB.remove(module, id);
     const db = DB.load(); const arr = db[module] || (db[module] = []);
     const idx = arr.findIndex(x => x.id === id);
     if (idx >= 0) { arr.splice(idx, 1); DB.save(db); dispatchEvent(new CustomEvent("dbchange", { detail: { module } })); return true; }
     return false;
   },
+
+  async pullAll() {
+    if (!hasSupa()) return;
+    const db = DEFAULT_DB();
+    const results = await Promise.all(TABLES.map(t => SB.all(t).catch(()=>[])));
+    TABLES.forEach((t, i)=> db[t] = results[i] || []);
+    DB.save(db);
+    dispatchEvent(new CustomEvent("dbchange", { detail: { module: "all" } }));
+  },
+
+  reset() { const db = DEFAULT_DB(); DB._seed(db); DB.save(db); dispatchEvent(new CustomEvent("dbchange", { detail: { module: "all" } })); },
+
   _seed(db) {
-    const adminName = "李主委";
-    db.announcements.push({ id: uid(), title: "停水通知", content: "8/25 上午 9–12 點停水。", time: todayISO(), author: adminName, options: ["同意","反對"], votes: {"同意":0,"反對":0}, voters: {}, reads: {} });
-    db.maintenance.push({ id: uid(), equipment: "電梯", item: "年度保養", time: "2025-08-10", handler: "保養公司", cost: 8000, note: "正常", status: "closed", assignee: "王工程", logs: [{ time: nowISO(), text: "建立工單", by: adminName }] });
+    if (!db.announcements.length) {
+      const adminName = "系統";
+      db.announcements.push({ id: uid(), title: "歡迎使用", content: "資料將自動與雲端同步", time: nowISO(), author: adminName, options: ["同意","反對"], votes: {"同意":0,"反對":0}, voters: {}, reads: {} });
+    }
   }
 };
 
-/* ============================ 模組 API（略，與你現有相同） ============================ */
-const Ann = { list:()=>DB.list("announcements"), get:(id)=>DB.find("announcements", id),
-  create({ title, content, options = ["同意","反對"] }) {
+/* ============================ 模組 API（名稱與呼叫方式維持不變） ============================ */
+const Ann = { 
+  list:()=>DB.list("announcements"), 
+  get:(id)=>DB.find("announcements", id),
+  async create({ title, content, options = ["同意","反對"] }) {
     const u = getUser() || {};
     const opts = options.length?options:["同意","反對"];
-    const rec = { id: uid(), title, content, time: nowISO(), author: u.name || u.email || "系統", options: opts, votes: Object.fromEntries(opts.map(o=>[o,0])), voters:{}, reads:{} };
-    DB.upsert("announcements", rec); return rec.id;
+    const rec = { title, content, time: nowISO(), author: u.name || u.email || "系統", options: opts, votes: Object.fromEntries(opts.map(o=>[o,0])), voters:{}, reads:{} };
+    return DB.upsert("announcements", rec);
   },
-  update(rec){ const old = Ann.get(rec.id); if(!old) throw new Error("公告不存在"); DB.upsert("announcements", { ...old, ...rec }); },
-  remove:(id)=>DB.remove("announcements", id),
-  markRead(id, email){ const a = Ann.get(id); if(!a) return; a.reads ||= {}; if(email) a.reads[email]=true; DB.upsert("announcements", a); },
-  vote(id, option){ const a = Ann.get(id); if(!a) throw new Error("公告不存在"); if(!a.options.includes(option)) throw new Error("選項不存在");
+  async update(rec){ const old = Ann.get(rec.id); if(!old) throw new Error("公告不存在"); return DB.upsert("announcements", { ...old, ...rec }); },
+  async remove(id){ return DB.remove("announcements", id); },
+  async markRead(id, email){ const a = Ann.get(id); if(!a) return; a.reads ||= {}; if(email) a.reads[email]=true; return DB.upsert("announcements", a); },
+  async vote(id, option){ 
+    const a = Ann.get(id); if(!a) throw new Error("公告不存在"); 
+    if(!a.options.includes(option)) throw new Error("選項不存在");
     const email = getUser()?.email || ""; if(!email) throw new Error("請先登入");
     a.voters ||= {}; const prev = a.voters[email];
-    if(prev !== option){ a.votes ||= {}; a.options.forEach(o=>{ if(a.votes[o]==null) a.votes[o]=0; });
+    if(prev !== option){ 
+      a.votes ||= {}; a.options.forEach(o=>{ if(a.votes[o]==null) a.votes[o]=0; });
       if(prev) a.votes[prev] = Math.max(0,(a.votes[prev]||0)-1);
-      a.votes[option] = (a.votes[option]||0)+1; a.voters[email] = option; DB.upsert("announcements", a);
+      a.votes[option] = (a.votes[option]||0)+1; a.voters[email] = option; 
+      await DB.upsert("announcements", a);
     }
     return a;
   }
 };
 
-const Maint = { list:()=>DB.list("maintenance"), get:(id)=>DB.find("maintenance", id),
-  create({ equipment, item, handler = "", cost = 0, note = "" }) {
-    const rec = { id: uid(), equipment, item, time: nowISO(), handler, cost, note, status: "open", assignee: "", logs: [{ time: nowISO(), text: "建立工單", by: getUser()?.email || "系統" }] };
-    DB.upsert("maintenance", rec); return rec.id;
+const Maint = { 
+  list:()=>DB.list("maintenance"), 
+  get:(id)=>DB.find("maintenance", id),
+  async create({ equipment, item, handler = "", cost = 0, note = "" }) {
+    const rec = { equipment, item, time: nowISO(), handler, cost, note, status: "open", assignee: "", logs: [{ time: nowISO(), text: "建立工單", by: getUser()?.email || "系統" }] };
+    return DB.upsert("maintenance", rec);
   },
-  update(rec){ const old = Maint.get(rec.id); if(!old) throw new Error("工單不存在"); DB.upsert("maintenance", { ...old, ...rec }); },
-  remove:(id)=>DB.remove("maintenance", id),
-  setStatus(id, status){ const m = Maint.get(id); if(!m) throw new Error("工單不存在"); m.status=status; (m.logs ||= []).push({time:nowISO(), text:`狀態：${status}`, by:getUser()?.email||"系統"}); DB.upsert("maintenance", m); },
-  assign(id, assignee){ const m = Maint.get(id); if(!m) throw new Error("工單不存在"); m.assignee=assignee; (m.logs ||= []).push({time:nowISO(), text:`指派：${assignee}`, by:getUser()?.email||"系統"}); DB.upsert("maintenance", m); },
-  addLog(id, text){ const m = Maint.get(id); if(!m) throw new Error("工單不存在"); (m.logs ||= []).push({time:nowISO(), text, by:getUser()?.email||"系統"}); DB.upsert("maintenance", m); }
+  async update(rec){ const old = Maint.get(rec.id); if(!old) throw new Error("工單不存在"); return DB.upsert("maintenance", { ...old, ...rec }); },
+  async remove(id){ return DB.remove("maintenance", id); },
+  async setStatus(id, status){ const m = Maint.get(id); if(!m) throw new Error("工單不存在"); m.status=status; (m.logs ||= []).push({time:nowISO(), text:`狀態：${status}`, by:getUser()?.email||"系統"}); return DB.upsert("maintenance", m); },
+  async assign(id, assignee){ const m = Maint.get(id); if(!m) throw new Error("工單不存在"); m.assignee=assignee; (m.logs ||= []).push({time:nowISO(), text:`指派：${assignee}`, by:getUser()?.email||"系統"}); return DB.upsert("maintenance", m); },
+  async addLog(id, text){ const m = Maint.get(id); if(!m) throw new Error("工單不存在"); (m.logs ||= []).push({time:nowISO(), text, by:getUser()?.email||"系統"}); return DB.upsert("maintenance", m); }
 };
 
-const Fee = { list:()=>DB.list("fees"), get:(id)=>DB.find("fees", id),
-  create({ room, amount, due, invoice = "", note = "" }){ const rec = { id: uid(), room, amount, due, paid:false, paidAt:"", invoice, note }; DB.upsert("fees", rec); return rec.id; },
-  update(rec){ const old = Fee.get(rec.id); if(!old) throw new Error("費用不存在"); DB.upsert("fees", { ...old, ...rec }); },
-  remove:(id)=>DB.remove("fees", id),
-  setPaid(id, paid){ const f = Fee.get(id); if(!f) throw new Error("費用不存在"); f.paid=!!paid; f.paidAt = f.paid ? nowISO() : ""; DB.upsert("fees", f); }
+const Fee = { 
+  list:()=>DB.list("fees"), 
+  get:(id)=>DB.find("fees", id),
+  async create({ room, amount, due, invoice = "", note = "" }){ const rec = { room, amount, due, paid:false, paidAt:"", invoice, note }; return DB.upsert("fees", rec); },
+  async update(rec){ const old = Fee.get(rec.id); if(!old) throw new Error("費用不存在"); return DB.upsert("fees", { ...old, ...rec }); },
+  async remove(id){ return DB.remove("fees", id); },
+  async setPaid(id, paid){ const f = Fee.get(id); if(!f) throw new Error("費用不存在"); f.paid=!!paid; f.paidAt = f.paid ? nowISO() : ""; return DB.upsert("fees", f); }
 };
 
-const Resi = { list:()=>DB.list("residents"), get:(id)=>DB.find("residents", id),
-  create({ name, room, phone = "", email = "", role = "resident" }){ const rec = { id: uid(), name, room, phone, email, role }; DB.upsert("residents", rec); return rec.id; },
-  update(rec){ const old = Resi.get(rec.id); if(!old) throw new Error("住戶不存在"); DB.upsert("residents", { ...old, ...rec }); },
-  remove:(id)=>DB.remove("residents", id)
+const Resi = { 
+  list:()=>DB.list("residents"), 
+  get:(id)=>DB.find("residents", id),
+  async create({ name, room, phone = "", email = "", role = "resident" }){ const rec = { name, room, phone, email, role }; return DB.upsert("residents", rec); },
+  async update(rec){ const old = Resi.get(rec.id); if(!old) throw new Error("住戶不存在"); return DB.upsert("residents", { ...old, ...rec }); },
+  async remove(id){ return DB.remove("residents", id); }
 };
 
-const Visit = { list:()=>DB.list("visitors"), get:(id)=>DB.find("visitors", id),
-  checkin({ name, room, timeIn = "" }){ const rec = { id: uid(), name, room, in: timeIn || nowISO(), out:"" }; DB.upsert("visitors", rec); return rec.id; },
-  checkout(id, timeOut = ""){ const v = Visit.get(id); if(!v) throw new Error("訪客不存在"); v.out = timeOut || nowISO(); DB.upsert("visitors", v); },
-  remove:(id)=>DB.remove("visitors", id)
+const Visit = { 
+  list:()=>DB.list("visitors"), 
+  get:(id)=>DB.find("visitors", id),
+  async checkin({ name, room, timeIn = "" }){ const rec = { name, room, in: timeIn || nowISO(), out:"" }; return DB.upsert("visitors", rec); },
+  async checkout(id, timeOut = ""){ const v = Visit.get(id); if(!v) throw new Error("訪客不存在"); v.out = timeOut || nowISO(); return DB.upsert("visitors", v); },
+  async remove(id){ return DB.remove("visitors", id); }
 };
 
-const Pack = { list:()=>DB.list("packages"), get:(id)=>DB.find("packages", id),
-  receive({ courier = "", tracking = "", room, note = "" }){ const rec = { id: uid(), courier, tracking, room, receivedAt: nowISO(), pickedAt:"", picker:"", note }; DB.upsert("packages", rec); return rec.id; },
-  pickup(id, picker, time = ""){ const p = Pack.get(id); if(!p) throw new Error("包裹不存在"); p.picker=picker; p.pickedAt = time || nowISO(); DB.upsert("packages", p); },
-  remove:(id)=>DB.remove("packages", id)
+const Pack = { 
+  list:()=>DB.list("packages"), 
+  get:(id)=>DB.find("packages", id),
+  async receive({ courier = "", tracking = "", room, note = "" }){ const rec = { courier, tracking, room, receivedAt: nowISO(), pickedAt:"", picker:"", note }; return DB.upsert("packages", rec); },
+  async pickup(id, picker, time = ""){ const p = Pack.get(id); if(!p) throw new Error("包裹不存在"); p.picker=picker; p.pickedAt = time || nowISO(); return DB.upsert("packages", p); },
+  async remove(id){ return DB.remove("packages", id); }
 };
 
-const Meet = { list:()=>DB.list("meetings"), get:(id)=>DB.find("meetings", id),
-  create({ topic, time, location, notes = "", minutesUrl = "" }){ const rec = { id: uid(), topic, time, location, notes, minutesUrl }; DB.upsert("meetings", rec); return rec.id; },
-  update(rec){ const old = Meet.get(rec.id); if(!old) throw new Error("會議不存在"); DB.upsert("meetings", { ...old, ...rec }); },
-  remove:(id)=>DB.remove("meetings", id)
+const Meet = { 
+  list:()=>DB.list("meetings"), 
+  get:(id)=>DB.find("meetings", id),
+  async create({ topic, time, location, notes = "", minutesUrl = "" }){ const rec = { topic, time, location, notes, minutesUrl }; return DB.upsert("meetings", rec); },
+  async update(rec){ const old = Meet.get(rec.id); if(!old) throw new Error("會議不存在"); return DB.upsert("meetings", { ...old, ...rec }); },
+  async remove(id){ return DB.remove("meetings", id); }
 };
 
 /* ---------- 緊急紀錄 ---------- */
 const Emergency = {
   list: () => DB.list("emergencies"),
   get:  (id) => DB.find("emergencies", id),
-  create({ type, note = "" }) {
+  async create({ type, note = "" }) {
     const user = getUser();
     const who = user?.email || "未知使用者";
-    const rec = { id: uid(), type, time: nowISO(), note, by: who };
-    DB.upsert("emergencies", rec); 
-    return rec.id;
+    const rec = { type, time: nowISO(), note, by: who };
+    return DB.upsert("emergencies", rec);
   },
-  remove: (id)=> DB.remove("emergencies", id)
+  async remove(id){ return DB.remove("emergencies", id); }
 };
 
-/* ---------- 共用 TTS & 緊急動作（僅住戶/管委會可用） ---------- */
-function speak(msg){
-  try{ const u = new SpeechSynthesisUtterance(msg); u.lang = "zh-TW"; speechSynthesis.speak(u); }catch(_){}
+/* ---------- 啟動時同步 Supabase → 覆寫本地快取 ---------- */
+async function bootstrapData(){
+  await supaInit();
+  if (hasSupa()) await DB.pullAll();
 }
-function getResidentProfileForTTS(){
-  const u = getUser() || {};
-  const name = (u.email || '').split('@')[0] || '住戶';
-  return { name, tower:'A棟', floor:'10樓', room:'1001室', allergy:'青黴素', chronic:'高血壓', blood:'O型' };
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapData);
+} else {
+  bootstrapData();
 }
-function emgNarration(prefix){
-  const p = getResidentProfileForTTS();
-  const msg = `${prefix}，位置 ${p.tower}${p.floor}${p.room}。住戶：${p.name}，過敏 ${p.allergy}，慢性病 ${p.chronic}，血型 ${p.blood}。請盡速前往救援。`;
-  speak(msg); return msg;
-}
-function _checkEmergencyPermission(){
-  if (!guardAction(location.pathname+location.hash)) return false;
-  if (hasRole('vendor')) { alert('此功能僅限住戶與管委會使用。'); return false; }
-  return true;
-}
-const EmergencyActions = {
-  call119(){
-    if (!_checkEmergencyPermission()) return;
-    const note = emgNarration('緊急狀況，已呼叫救護車');
-    Emergency.create({ type:'救護車 119', note });
-    try{ location.href = 'tel:119'; }catch(_){}
-    alert('已建立紀錄並撥打 119（示意）。');
-  },
-  call110(){
-    if (!_checkEmergencyPermission()) return;
-    const note = emgNarration('緊急狀況，已報警');
-    Emergency.create({ type:'報警 110', note });
-    try{ location.href = 'tel:110'; }catch(_){}
-    alert('已建立紀錄並撥打 110（示意）。');
-  },
-  aed(){
-    if (!_checkEmergencyPermission()) return;
-    Emergency.create({ type:'AED', note:'已通知警衛送 AED（示意）' });
-    speak('請警衛立即攜帶自動體外電擊去顫器前往指定樓層。');
-    alert('已通知警衛送 AED（示意）。');
-  },
-  simFall(){
-    if (!_checkEmergencyPermission()) return;
-    Emergency.create({ type:'跌倒偵測', note:'偵測住戶跌倒（模擬）；可串穿戴裝置 Webhook。' });
-    speak('偵測到疑似跌倒，請立即確認住戶狀況。');
-    alert('跌倒偵測：已通知社區與家屬（示意）。');
-  }
-};
-window.EmergencyActions = EmergencyActions;
 
 /* ============================ 對外暴露 ============================ */
 window.parseQuery = parseQuery;
@@ -425,6 +481,7 @@ window.gotoProtected = gotoProtected;
 window.canAccessBackend = canAccessBackend;
 window.initPage = initPage;
 window.updateAuthUI = updateAuthUI;
+window.getSupa = getSupa;
 
 window.DB = DB;
 window.Ann = Ann;
@@ -436,7 +493,55 @@ window.Pack = Pack;
 window.Meet = Meet;
 window.Act = { list:()=>DB.list("activities"), get:(id)=>DB.find("activities", id) };
 window.Emergency = Emergency;
-window.speak = speak;
+
+/* ---------- 共用 TTS & 緊急動作（僅住戶/管委會可用） ---------- */
+function speak(msg){
+  try{ const u = new SpeechSynthesisUtterance(msg); u.lang = "zh-TW"; speechSynthesis.speak(u); }catch(_){}
+}
+function getResidentProfileForTTS(){
+  const u = getUser() || {};
+  const name = (u.email || '').split('@')[0] || '住戶';
+  return { name, tower:'A棟', floor:'10樓', room:'1001室', allergy:'青黴素', chronic:'高血壓', blood:'O型' };
+}
+function emgNarration(prefix){
+  const p = getResidentProfileForTTS();
+  const msg = `${prefix}，位置 ${p.tower}${p.floor}${p.room}。住戶：${p.name}，過敏 ${p.allergy}，慢性病 ${p.chronic}，血型 ${p.blood}。請盡速前往救援。`;
+  speak(msg); return msg;
+}
+function _checkEmergencyPermission(){
+  if (!guardAction(location.pathname+location.hash)) return false;
+  if (hasRole('vendor')) { alert('此功能僅限住戶與管委會使用。'); return false; }
+  return true;
+}
+const EmergencyActions = {
+  async call119(){
+    if (!_checkEmergencyPermission()) return;
+    const note = emgNarration('緊急狀況，已呼叫救護車');
+    await Emergency.create({ type:'救護車 119', note });
+    try{ location.href = 'tel:119'; }catch(_){}
+    alert('已建立紀錄並撥打 119（示意）。');
+  },
+  async call110(){
+    if (!_checkEmergencyPermission()) return;
+    const note = emgNarration('緊急狀況，已報警');
+    await Emergency.create({ type:'報警 110', note });
+    try{ location.href = 'tel:110'; }catch(_){}
+    alert('已建立紀錄並撥打 110（示意）。');
+  },
+  async aed(){
+    if (!_checkEmergencyPermission()) return;
+    await Emergency.create({ type:'AED', note:'已通知警衛送 AED（示意）' });
+    speak('請警衛立即攜帶自動體外電擊去顫器前往指定樓層。');
+    alert('已通知警衛送 AED（示意）。');
+  },
+  async simFall(){
+    if (!_checkEmergencyPermission()) return;
+    await Emergency.create({ type:'跌倒偵測', note:'偵測住戶跌倒（模擬）；可串穿戴裝置 Webhook。' });
+    speak('偵測到疑似跌倒，請立即確認住戶狀況。');
+    alert('跌倒偵測：已通知社區與家屬（示意）。');
+  }
+};
+window.EmergencyActions = EmergencyActions;
 
 /* =========================================================================
  * AI Chat Widget（右下）— 未登入可開面板，但功能必須先登入
@@ -611,7 +716,7 @@ const AIChat = (() => {
     if (/住戶|名冊|我的資料|個資/.test(t)) return '名冊在「常用功能 → 住戶 / 人員」，編輯個資請用「住戶服務 → 編輯我的資料」。';
     if (/訪客|包裹/.test(t)) return '訪客/包裹請到「常用功能 → 訪客 / 包裹」。';
     if (/會議|活動/.test(t)) return '會議與活動請到「常用功能 → 會議 / 活動」。';
-    if (/119|救護|急救|110|報警|aed|跌倒/.test(t)) return '緊急服務請用「緊急服務」分頁的四個按鈕；未登入時會先帶你登入。';
+    if (/119|救護|急救|110|報警|aed|跌倒/.test(t)) return '緊急服務請用「緊急服務」分頁的四個按鈕；未登入時會先帶你去登入。';
     return '已收到～可先用上方卡片進入各功能；未登入時我會先帶你去登入頁。';
   }
 
