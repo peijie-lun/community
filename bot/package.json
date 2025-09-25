@@ -1,15 +1,12 @@
 {
   "name": "bot",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "main": "app.js",
   "packageManager": "pnpm@10.17.1",
+  "scripts": {
+    "start": "node app.js",
+    "build": "echo \"no build step\""
+  },
   "dependencies": {
     "@line/bot-sdk": "^10.3.0",
     "dotenv": "^17.2.2",
