@@ -10,8 +10,8 @@ const config = {
 const client = new line.Client(config);
 const app = express();
 
-
-app.get('/', (_, res) => res.status(200).send('OK'));
+// Health check
+app.get('/', (_req, res) => res.status(200).send('OK'));
 
 // LINE Webhook
 app.post('/callback', line.middleware(config), async (req, res) => {
@@ -26,11 +26,13 @@ app.post('/callback', line.middleware(config), async (req, res) => {
 
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
-    return null; // 非文字訊息就忽略
+    return null;
   }
   const echo = { type: 'text', text: event.message.text };
   return client.replyMessage(event.replyToken, echo);
 }
 
-const PORT = process.env.PORT || 3000;   
-app.listen(PORT, () => console.log('l
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log('listening on ' + PORT);
+});
