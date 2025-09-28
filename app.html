@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>社區客服系統 · 功能頁（前台）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a443f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
+  <script type="module">import 'https://esm.run/@material/web/all.js';</script>
+
+  <style>
+    :root{ --container-w: min(1140px, calc(100vw - 24px)); }
+    html,body{height:100%}
+    body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial;background:#f6f7fb}
+    md-top-app-bar{ position: sticky; top: 0; z-index: 110; }
+    .container{width:var(--container-w);margin-inline:auto}
+    .muted{opacity:.66}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 16px}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+    th,td{padding:12px 12px;border-bottom:1px solid #eee;vertical-align:top}
+    th{background:#f9fafb;text-align:left;font-weight:800}
+    tbody tr:hover{background:#fafafa}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+
+    .panel{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
+    .panel-body{padding:18px}
+
+    #installCta{ position:fixed; right:16px; bottom: calc(env(safe-area-inset-bottom) + 132px); z-index:1200; display:none; }
+    @media (max-width: 420px){ #installCta{ right:12px; bottom: calc(env(safe-area-inset-bottom) + 96px); } }
+
+    /* 緊急大按鈕 */
+    .emg-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:12px; margin: 6px 0 14px; }
+    .emg-btn{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:16px; border:1px solid #e7ecef; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,.06); cursor:pointer; }
+    .emg-btn:hover{ box-shadow:0 10px 28px rgba(0,0,0,.1); transform: translateY(-1px); }
+    .emg-icon{ width:44px; height:44px; display:grid; place-items:center; border-radius:12px; background:#f2f6f5; }
+    .emg-title{ font-weight:900; letter-spacing:.3px }
+    .emg-note{ font-size:12px; opacity:.75 }
+
+    .warn{ color:#b00020; font-weight:700 }
+  </style>
+</head>
+<body>
+  <!-- App Bar -->
+  <md-top-app-bar>
+    <md-icon-button slot="navigationIcon" aria-label="首頁" title="首頁" onclick="location.href='index.html'">
+      <span class="material-symbols-outlined">home</span>
+    </md-icon-button>
+    <div slot="headline" style="font-weight:900;letter-spacing:.4px" id="pageHeadline">社區客服 · 功能頁</div>
+
+    <!-- 帳號選單 -->
+    <md-menu id="userMenu" anchor="userBtn">
+      <md-menu-item disabled>
+        <div slot="headline" id="authName">訪客</div>
+        <div slot="supporting-text" id="authMail" class="muted">未登入</div>
+      </md-menu-item>
+      <md-divider></md-divider>
+      <md-menu-item id="menuLogin" onclick="gotoLogin()">
+        <span slot="start" class="material-symbols-outlined">login</span>
+        <div slot="headline">登入（選擇身分）</div>
+      </md-menu-item>
+      <md-menu-item id="menuLogout" onclick="logout()" style="display:none">
+        <span slot="start" class="material-symbols-outlined">logout</span>
+        <div slot="headline">登出</div>
+      </md-menu-item>
+    </md-menu>
+    <md-icon-button id="userBtn" slot="actionItems" aria-label="帳號" title="帳號" onclick="userMenu.show()">
+      <span class="material-symbols-outlined">account_circle</span>
+    </md-icon-button>
+  </md-top-app-bar>
+
+  <!-- 主內容 -->
+  <main class="container" style="padding:22px 0 28px">
+    <h2 id="tabTitle" style="font-weight:900;letter-spacing:.3px;margin:0 0 6px"></h2>
+    <div class="muted" id="tabHint" style="margin-bottom:12px"></div>
+
+    <div class="toolbar">
+      <md-outlined-text-field id="searchBox" label="搜尋關鍵字" type="search" style="min-width:220px"></md-outlined-text-field>
+      <md-text-button id="btnRefresh"><span class="material-symbols-outlined" slot="icon">refresh</span>重新整理</md-text-button>
+
+      <!-- 住戶例外權限：申請報修 / 編輯個資 -->
+      <md-filled-tonal-button id="btnRequestFix" style="display:none">
+        <span class="material-symbols-outlined" slot="icon">build</span>申請報修
+      </md-filled-tonal-button>
+      <md-outlined-button id="btnEditSelf" style="display:none">
+        <span class="material-symbols-outlined" slot="icon">edit</span>編輯我的資料
+      </md-outlined-button>
+
+      <!-- 新增：訪客/包裹切換（預設隱藏，僅在「訪客 / 包裹」分頁顯示） -->
+      <md-outlined-button id="btnToggleVP" style="display:none">
+        <span class="material-symbols-outlined" slot="icon">inventory_2</span>
+        <span id="btnToggleVPText">顯示包裹</span>
+      </md-outlined-button>
+    </div>
+
+    <section class="panel">
+      <div class="panel-body">
+        <!-- 緊急模組的額外區塊（大按鈕） -->
+        <div id="emgArea" style="display:none"></div>
+
+        <div style="overflow:auto">
+          <table id="dataTable">
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+
+        <div id="deny" class="muted" style="display:none; padding:14px 8px">
+          <span class="warn">權限不足：</span>此身分不可存取該功能。
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 安裝 App FAB -->
+  <md-fab id="installCta" label="安裝 App" variant="secondary">
+    <span class="material-symbols-outlined" slot="icon">download</span>
+  </md-fab>
+
+  <script src="index.js"></script>
+  <script>
+    /* ====== 小工具 ====== */
+    const fmt = (t) => !t ? '' : (t.toString().slice(0,16).replace('T',' '));
+    const role = () => getRole();
+
+    /* ====== 權限規則 ======
+      - resident：只讀；例外 -> 維修:可申請報修(create)。住戶:可編輯自己的資料(update 自己那筆)。
+      - committee：全部只讀；不可新增/刪除/修改（到後台操作）。
+      - vendor：只能使用維修模組，且可「回覆/更新狀態」（setStatus/addLog）；其他模組禁止存取。
+    =============================================================== */
+
+    const READONLY = () => role()==='resident' || role()==='committee';
+    const VENDOR_ONLY_MAINT = () => role()==='vendor';
+
+    function canAccessModule(key){
+      if (role()==='vendor') return key==='maintenance'; // 只允許維修
+      return true; // 其他身分皆可進（但多為只讀）
+    }
+
+    /* ====== 各模組定義（前台） ====== */
+    const MODULES = {
+      announcement: {
+        title: '公告 / 投票',
+        hint: READONLY() ? '只讀瀏覽。投票/新增請改由後台（本頁禁止修改）。' : '（管理請改由後台）',
+        columns: [
+          { key: 'title', label: '標題' },
+          { key: (r)=>fmt(r.time), label: '時間', width: 160 },
+          { key: 'author', label: '作者', width: 120 },
+          { key: (r)=> (r.options||[]).map(o=>`${o}:${r.votes?.[o]||0}`).join(' / '), label: '投票' },
+          { key: '_actions', label: '動作', width: 60 }
+        ],
+        list: ()=> Ann.list(),
+        rowActions: (_)=> '' /* 前台全面禁止投票/刪除 */
+      },
+      maintenance: {
+        title: '維修 / 客服',
+        hint: role()==='resident'
+          ? '可「申請報修」。其他修改請由後台處理。'
+          : role()==='vendor'
+            ? '可回覆/更新工單狀態；不可新增/刪除/指派。'
+            : '只讀瀏覽（管委會請至後台操作）。',
+        columns: [
+          { key: 'equipment', label: '設備' },
+          { key: 'item', label: '項目' },
+          { key: 'time', label: '時間', width: 150 },
+          { key: 'handler', label: '承辦', width: 120 },
+          { key: (r)=>'$'+(r.cost||0), label: '費用', width: 100 },
+          { key: 'status', label: '狀態', width: 100 },
+          { key: 'assignee', label: '指派', width: 120 },
+          { key: '_actions', label: '動作', width: (role()==='vendor'?260:60) }
+        ],
+        list: ()=> Maint.list(),
+        rowActions: (r)=> {
+          if (role()==='vendor') {
+            return `
+              <md-text-button data-act="st" data-id="${r.id}" data-s="open">開單</md-text-button>
+              <md-text-button data-act="st" data-id="${r.id}" data-s="progress">處理中</md-text-button>
+              <md-text-button data-act="st" data-id="${r.id}" data-s="closed">結案</md-text-button>
+              <md-text-button data-act="log" data-id="${r.id}">回覆進度</md-text-button>
+            `;
+          }
+          return ''; // 住戶/管委會前台不顯示行為（住戶用工具列「申請報修」）
+        },
+        handleAction: (act, id, extra)=>{
+          if (role()!=='vendor') return; // 只有廠商可在前台操作工單
+          if (!guardAction()) return;
+          if (act==='st') { Maint.setStatus(id, extra.s); }
+          else if (act==='log') {
+            const text = prompt('回覆內容（將寫入工單紀錄）：'); if (text) Maint.addLog(id, text);
+          }
+        }
+      },
+      finance: {
+        title: '帳務 / 收費',
+        hint: '前台只讀；繳費狀態與異動請改由後台處理。',
+        columns: [
+          { key: 'room', label: '房號', width: 120 },
+          { key: (r)=>'$'+(r.amount||0), label: '金額', width: 100 },
+          { key: 'due', label: '到期', width: 140 },
+          { key: (r)=> r.paid?'已繳':'未繳', label: '狀態', width: 90 },
+          { key: 'invoice', label: '發票', width: 150 }
+        ],
+        list: ()=> Fee.list(),
+        rowActions: ()=> ''
+      },
+      resident: {
+        title: '住戶 / 人員',
+        hint: role()==='resident'
+          ? '你可以在本頁「編輯我的資料」。整體名冊維護請由後台處理。'
+          : '前台只讀（刪改請由後台）。',
+        columns: [
+          { key: 'name', label: '姓名' },
+          { key: 'room', label: '房號', width: 120 },
+          { key: 'phone', label: '電話', width: 140 },
+          { key: 'email', label: 'Email', width: 200 },
+          { key: 'role', label: '身分', width: 100 }
+        ],
+        list: ()=> Resi.list(),
+        rowActions: ()=> ''
+      },
+      visitor: {
+        title: '訪客 / 包裹',
+        hint: '前台只讀；簽出/刪除請改由後台處理。',
+        columns: [
+          { key: 'name', label: '姓名' },
+          { key: 'room', label: '房號', width: 120 },
+          { key: 'in', label: '進場', width: 170 },
+          { key: 'out', label: '離場', width: 170 }
+        ],
+        list: ()=> Visit.list(),
+        rowActions: ()=> ''
+      },
+      meeting: {
+        title: '會議 / 活動',
+        hint: '前台只讀；新增/刪除請改由後台處理。',
+        columns: [
+          { key: (r)=>r.topic||r.name, label: '主題' },
+          { key: 'time', label: '時間', width: 160 },
+          { key: 'location', label: '地點', width: 160 },
+          { key: 'notes', label: '備註' }
+        ],
+        list: ()=> Meet.list(),
+        rowActions: ()=> ''
+      },
+      /* ---------- 緊急服務（紀錄清單只讀） ---------- */
+      emergency: {
+        title: '緊急服務',
+        hint: '緊急操作請使用「首頁右上」的四鍵；此處僅顯示紀錄（只讀）。',
+        columns: [
+          { key: 'type', label: '類型', width: 160 },
+          { key: (r)=>fmt(r.time), label: '時間', width: 160 },
+          { key: (r)=>r.by||'', label: '使用者', width: 200 },
+          { key: 'note', label: '紀錄' }
+        ],
+        list: ()=> Emergency.list(),
+        rowActions: ()=> ''
+      }
+    };
+
+    // ------- 訪客/包裹切換狀態與包裹欄位 -------
+    let VIEW_PKGS = false;
+    const PKG_COLS = [
+      { key: (r)=> r.tracking || '(無單號)', label: '單號/識別' },
+      { key: 'room', label: '房號', width: 120 },
+      { key: (r)=> r.receivedAt?.slice(0,16).replace('T',' ') || '', label: '進場', width: 170 },
+      { key: (r)=> r.pickedAt?.slice(0,16).replace('T',' ') || '',  label: '離場', width: 170 }
+    ];
+
+    // ------- 緊急模組：大按鈕（仍保留示意；真實操作用首頁四鍵） -------
+    function renderEmergencyButtons(show){
+      const area = document.getElementById('emgArea');
+      if (!show) { area.style.display='none'; area.innerHTML=''; return; }
+      area.style.display = '';
+      area.innerHTML = `
+        <div class="emg-grid" role="group" aria-label="緊急操作">
+          <div class="emg-btn" onclick="EmergencyActions.call119()">
+            <div class="emg-icon"><span class="material-symbols-outlined">ambulance</span></div>
+            <div><div class="emg-title">救護車（119）</div><div class="emg-note">建立紀錄 + TTS 播報 + 撥號</div></div>
+          </div>
+          <div class="emg-btn" onclick="EmergencyActions.aed()">
+            <div class="emg-icon"><span class="material-symbols-outlined">heart_plus</span></div>
+            <div><div class="emg-title">AED 送達</div><div class="emg-note">通知警衛送 AED（示意）</div></div>
+          </div>
+          <div class="emg-btn" onclick="EmergencyActions.call110()">
+            <div class="emg-icon"><span class="material-symbols-outlined">siren</span></div>
+            <div><div class="emg-title">報警（110）</div><div class="emg-note">建立紀錄 + TTS 播報 + 撥號</div></div>
+          </div>
+          <div class="emg-btn" onclick="EmergencyActions.simFall()">
+            <div><div class="emg-title">跌倒偵測（模擬）</div><div class="emg-note">穿戴裝置串接前的測試觸發</div></div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ------- 畫面渲染 -------
+    function currentKey(){
+      const key = (location.hash||'#announcement').slice(1);
+      return MODULES[key] ? key : 'announcement';
+    }
+    function render(){
+      const key = currentKey();
+      const mod = MODULES[key];
+
+      // 廠商只能用維修模組
+      const deny = document.getElementById('deny');
+      if (!canAccessModule(key)) {
+        document.getElementById('pageHeadline').textContent = '社區客服 · 無權限';
+        document.getElementById('tabTitle').textContent = '權限不足';
+        document.getElementById('tabHint').textContent  = '你的身分為【廠商】；僅能使用「維修 / 客服」。';
+        document.getElementById('thead').innerHTML = '';
+        document.getElementById('tbody').innerHTML = '';
+        document.getElementById('emgArea').style.display='none';
+        deny.style.display = '';
+        return;
+      }
+      deny.style.display = 'none';
+
+      document.getElementById('pageHeadline').textContent = '社區客服 · ' + mod.title;
+      document.getElementById('tabTitle').textContent = mod.title;
+      document.getElementById('tabHint').textContent  = mod.hint;
+
+      // 住戶工具列顯示控制
+      document.getElementById('btnRequestFix').style.display = (key==='maintenance' && role()==='resident') ? '' : 'none';
+      document.getElementById('btnEditSelf').style.display   = (key==='resident'    && role()==='resident') ? '' : 'none';
+
+      renderEmergencyButtons(key === 'emergency');
+
+      // head
+      const thead = document.getElementById('thead');
+      const cols = (key === 'visitor' && VIEW_PKGS) ? PKG_COLS : mod.columns;
+      thead.innerHTML = `<tr>${cols.map(c=>`<th${c.width?` style="width:${c.width}px"`:''}>${c.label}</th>`).join('')}</tr>`;
+
+      // data
+      const kw = document.getElementById('searchBox').value.trim().toLowerCase();
+      const raw = (key === 'visitor' && VIEW_PKGS)
+        ? Pack.list().map(p => ({
+            id: p.id,
+            tracking: p.tracking || '',
+            room: p.room || '',
+            receivedAt: p.receivedAt || '',
+            pickedAt: p.pickedAt || ''
+          }))
+        : mod.list();
+      const data = raw.filter(row => !kw || JSON.stringify(row).toLowerCase().includes(kw));
+
+      // body
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = data.map(r=>{
+        const tds = cols.map(c=>{
+          if (c.key === '_actions') return `<td class="actions">${mod.rowActions(r) || ''}</td>`;
+          const val = (typeof c.key === 'function') ? c.key(r) : (r[c.key] ?? '');
+          return `<td>${val===''?'<span class="muted">—</span>':val}</td>`;
+        }).join('');
+        return `<tr data-id="${r.id}">${tds}</tr>`;
+      }).join('') || `<tr><td colspan="${cols.length}" class="muted" style="text-align:center;padding:22px">目前沒有資料</td></tr>`;
+
+      // 切換鈕顯示/文字
+      const toggleBtn = document.getElementById('btnToggleVP');
+      const toggleText = document.getElementById('btnToggleVPText');
+      if (key === 'visitor') {
+        toggleBtn.style.display = '';
+        toggleText.textContent = VIEW_PKGS ? '顯示訪客' : '顯示包裹';
+      } else {
+        toggleBtn.style.display = 'none';
+      }
+    }
+
+    // 事件委派：列上的按鈕（僅 vendor 的維修會觸發）
+    document.getElementById('tbody').addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-act]');
+      if (!btn) return;
+      const key = currentKey();
+      const mod = MODULES[key];
+      const act = btn.getAttribute('data-act');
+      const id  = btn.getAttribute('data-id');
+      const extra = { s: btn.getAttribute('data-s'), opt: btn.getAttribute('data-opt') };
+      try { mod.handleAction && mod.handleAction(act, id, extra); } catch(err) { alert(err?.message || String(err)); }
+    });
+
+    // 住戶：申請報修
+    document.getElementById('btnRequestFix').addEventListener('click', ()=>{
+      if (role()!=='resident') return;
+      if (!guardAction()) return;
+      const equipment = prompt('報修設備：'); if (!equipment) return;
+      const item = prompt('報修項目/描述：'); if (!item) return;
+      Maint.create({ equipment, item, handler:'', cost:0, note:'住戶申請報修' });
+    });
+
+    // 住戶：編輯自己的資料（以 email 關聯）
+    document.getElementById('btnEditSelf').addEventListener('click', ()=>{
+      if (role()!=='resident') return;
+      if (!guardAction()) return;
+      const email = getUser()?.email || '';
+      if (!email) return alert('需要在帳號中有 Email 才能對應住戶資料。');
+      const rows = Resi.list();
+      const me = rows.find(x => (x.email||'').toLowerCase() === email.toLowerCase());
+      if (!me) return alert('找不到你的住戶資料，請聯絡管委會建立。');
+
+      const name = prompt('姓名：', me.name || '');
+      if (name==null) return;
+      const room = prompt('房號：', me.room || '');
+      if (room==null) return;
+      const phone = prompt('電話：', me.phone || '');
+      if (phone==null) return;
+
+      Resi.update({ id: me.id, name, room, phone });
+    });
+
+    // 新增：訪客/包裹切換按鈕
+    document.getElementById('btnToggleVP').addEventListener('click', ()=>{
+      VIEW_PKGS = !VIEW_PKGS;
+      render();
+    });
+
+    // 啟動
+    function boot(){ initPage('app'); render(); }
+    document.getElementById('btnRefresh').addEventListener('click', render);
+    document.getElementById('searchBox').addEventListener('input', render);
+    window.addEventListener('dbchange', render);
+    window.addEventListener('hashchange', render);
+    window.addEventListener('pageshow', render);
+    document.addEventListener('DOMContentLoaded', boot);
+  </script>
+</body>
+</html>

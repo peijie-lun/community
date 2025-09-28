@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>登入 / 註冊 · 社區客服系統</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+  <script type="module">import 'https://esm.run/@material/web/all.js';</script>
+  <style>
+    body{font-family:Roboto,system-ui;margin:0;background:#f6f7fb;display:grid;place-items:center;height:100vh}
+    .card{background:#fff;padding:24px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.1);width:min(500px,calc(100vw - 24px))}
+    h2{margin:0 0 16px;font-weight:900}
+    .tabs{display:flex;gap:10px;margin-bottom:16px}
+    .tab{flex:1;text-align:center;padding:10px;cursor:pointer;border-radius:10px}
+    .tab.active{background:#5b4bb7;color:#fff;font-weight:700}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .err{color:#b00020;margin-top:10px;display:none;white-space:pre-line}
+    button{margin-top:16px;width:100%;padding:12px;border:none;border-radius:10px;background:#5b4bb7;color:#fff;font-size:16px;cursor:pointer}
+    .link{margin-top:12px;text-align:right;font-size:14px;color:#5b4bb7;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 id="formTitle">登入</h2>
+    <div class="tabs">
+      <div id="tabLogin" class="tab active">登入</div>
+      <div id="tabSignup" class="tab">註冊</div>
+    </div>
+
+    <form id="form" novalidate>
+      <!-- 共用：Email + 密碼 -->
+      <div class="row">
+        <md-outlined-text-field id="email" label="Email*" type="email" style="flex:1 1 100%" required></md-outlined-text-field>
+      </div>
+      <div class="row">
+        <md-outlined-text-field id="password" label="密碼*" type="password" minlength="1" style="flex:1 1 100%" required></md-outlined-text-field>
+      </div>
+
+      <!-- 註冊專用欄位 -->
+      <div id="signupFields" style="display:none">
+        <div class="row"><md-outlined-text-field id="name"  label="姓名*"        style="flex:1 1 100%"></md-outlined-text-field></div>
+        <div class="row"><md-outlined-text-field id="phone" label="手機*"        style="flex:1 1 100%"></md-outlined-text-field></div>
+        <div class="row"><md-outlined-text-field id="room"  label="住戶房號*"    style="flex:1 1 100%"></md-outlined-text-field></div>
+        <div class="row">
+          <md-outlined-select id="role" label="身分*" style="flex:1 1 100%">
+            <md-select-option value="resident">住戶</md-select-option>
+            <md-select-option value="committee">管委會</md-select-option>
+            <md-select-option value="vendor">廠商</md-select-option>
+          </md-outlined-select>
+        </div>
+      </div>
+
+      <div class="err" id="errMsg"></div>
+      <button type="submit" id="btnSubmit">送出</button>
+    </form>
+
+    <div class="link" id="forgotLink" style="display:none">忘記密碼？</div>
+  </div>
+
+  <!-- 拿 setUser / toRelative / redirectAfterLogin 這些工具 -->
+  <script src="index.js"></script>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // TODO: 換成你的 Supabase 專案設定
+    const SUPABASE_URL = "https://oyydhfvgtmghvnbkvczr.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95eWRoZnZndG1naHZuYmt2Y3pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1OTMwMTIsImV4cCI6MjA3MzE2OTAxMn0.fgz_Vl7bZ1rtrttOAQcTlymMgHfhiY2NDo3qEnBT1og";
+    const supa = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const $ = id=>document.getElementById(id);
+    const showError = (msg, ex)=>{
+      const e=$('errMsg'); e.textContent=msg||'發生不明錯誤'; e.style.display='block';
+      if (ex) console.error('[AUTH]', ex);
+    };
+    const clearError=()=>{ const e=$('errMsg'); e.textContent=''; e.style.display='none'; };
+
+    // next 只允許相對路徑
+    const params  = new URLSearchParams(location.search);
+    const rawNext = params.get('next') || '';
+    const next    = rawNext && window.toRelative ? window.toRelative(rawNext) : '';
+
+    // tab 切換
+    let mode='login';
+    const setMode=(m)=>{
+      mode=m;
+      $('formTitle').textContent = m==='login' ? '登入' : '註冊';
+      $('tabLogin').classList.toggle('active', m==='login');
+      $('tabSignup').classList.toggle('active', m==='signup');
+      $('signupFields').style.display = m==='signup' ? '' : 'none';
+      $('forgotLink').style.display   = m==='login' ? '' : 'none';
+      clearError();
+    };
+    $('tabLogin').onclick = ()=>setMode('login');
+    $('tabSignup').onclick = ()=>setMode('signup');
+    setMode('login');
+
+    // 送出
+    $('form').addEventListener('submit', async (e)=>{
+      e.preventDefault(); clearError();
+
+      const email = $('email').value.trim();
+      const password = $('password').value;
+      if (!email || !password) return showError('請輸入 Email 與密碼');
+
+      try{
+        if (mode==='login'){
+          // 以 email (不分大小寫) 找一筆
+          const { data, error } = await supa
+            .from('profiles')
+            .select('id,email,password,display_name,role,phone,room')
+            .ilike('email', email)
+            .limit(1)
+            .maybeSingle();
+          if (error) throw error;
+          if (!data) throw new Error('帳號或密碼錯誤');
+          if (data.password !== password) throw new Error('帳號或密碼錯誤');
+
+          // 寫入本地登入狀態 → 導向
+          const name = data.display_name || data.email;
+          const role = data.role || 'resident';
+          window.setUser ? window.setUser({ email: data.email, name, role }) : null;
+          if (window.redirectAfterLogin) window.redirectAfterLogin(next, role);
+          else location.href = next || (role==='committee' ? 'backend.html' : 'app.html');
+          return;
+        }
+
+        // 送出（form submit）內的「註冊模式」分支，請用這段取代原本的註冊邏輯
+if (mode === 'signup') {
+  const name  = $('name').value.trim();
+  const phone = $('phone').value.trim();
+  const room  = $('room').value.trim();
+  const role  = $('role').value;
+  const email = $('email').value.trim();
+  const password = $('password').value;
+
+  if (!email || !password) return showError('請輸入 Email 與密碼');
+  if (!name || !phone || !room || !role) {
+    return showError('註冊需要：姓名、手機、住戶房號、身分、Email、密碼。');
+  }
+
+  try {
+    // 檢查是否已存在（不分大小寫）
+    const { data: exists, error: e0 } = await supa
+      .from('profiles').select('id').ilike('email', email).limit(1).maybeSingle();
+    if (e0) throw e0;
+    if (exists) return showError('這個 Email 已註冊過了。');
+
+    // 寫入 profiles（Trigger 會自動新增 residents）
+    const { error: e1 } = await supa.from('profiles').insert({
+      email, password, role, display_name: name, phone, room
+    });
+    if (e1) throw e1;
+
+    // ✅ 改成回到「登入」分頁，不自動登入、不跳轉
+    alert('註冊成功，請使用剛剛的 Email 與密碼登入。');
+    setMode('login');            // 切換到登入分頁
+    $('password').value = '';    // 清空密碼以防手滑
+    $('email').focus();          // 讓使用者直接輸入密碼登入
+    return;
+  } catch (ex) {
+    showError(ex?.message || ex, ex);
+    return;
+  }
+}
+
+        // 檢查重複 Email（不分大小寫）
+        const { data: exists, error: e0 } = await supa.from('profiles')
+          .select('id').ilike('email', email).limit(1).maybeSingle();
+        if (e0) throw e0;
+        if (exists) return showError('這個 Email 已註冊過了。');
+
+        // 寫入 profiles（Trigger 會自動新增 residents）
+        const { error: e1 } = await supa.from('profiles').insert({
+          email, password, role, display_name: name, phone, room
+        });
+        if (e1) throw e1;
+
+        // 註冊後直接視為登入 → 導向
+        window.setUser ? window.setUser({ email, name, role }) : null;
+        if (window.redirectAfterLogin) window.redirectAfterLogin(next, role);
+        else location.href = next || (role==='committee' ? 'backend.html' : 'app.html');
+      }catch(ex){
+        showError(ex?.message || ex, ex);
+      }
+    });
+
+    // 忘記密碼（Demo：直接更新 profiles.password）
+    $('forgotLink').onclick = async ()=>{
+      const email = prompt('請輸入要重設的 Email');
+      if (!email) return;
+      const newPw = prompt('輸入新密碼');
+      if (!newPw) return;
+      try{
+        const { error } = await supa.from('profiles').update({ password: newPw }).ilike('email', email);
+        if (error) throw error;
+        alert('密碼已更新，請用新密碼登入');
+      }catch(ex){ showError(ex?.message || ex, ex); }
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>社區客服系統 · 管理後台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a443f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" rel="stylesheet" />
+  <script type="module">import 'https://esm.run/@material/web/all.js';</script>
+  <style>
+    :root{ --container-w: min(1140px, calc(100vw - 24px)); }
+    html,body{height:100%}
+    body{margin:0;font-family: Roboto, system-ui, -apple-system, "Segoe UI", Arial;background:#f6f7fb}
+    md-top-app-bar{ position: sticky; top: 0; z-index: 110; }
+    .container{width:var(--container-w);margin-inline:auto}
+    .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+    .tile{position:relative;border-radius:18px;overflow:hidden;min-height:200px;color:#fff;background-size:cover;background-position:center;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.12);transition:transform .15s, box-shadow .15s, filter .15s}
+    .tile:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(0,0,0,.18); filter:saturate(1.05); }
+    .tile::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.28))}
+    .tile > .inner{position:relative;padding:22px;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+    .badge{position:absolute;top:10px;right:10px;background:#FFD54F;color:#2b2b2b;border-radius:999px;padding:6px 10px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+    .muted{opacity:.66}
+
+    .panel{background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
+    .panel-body{padding:18px}
+
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+    th,td{padding:12px;border-bottom:1px solid #eee;vertical-align:top}
+    th{background:#f9fafb;text-align:left;font-weight:800}
+    tbody tr:hover{background:#fafafa}
+
+    /* 右上角：只顯示緊急四鍵＋帳號＋回首頁 */
+    .emg-chip{ white-space:nowrap }
+  </style>
+  <script src="index.js"></script>
+  <script>
+    // 若非管委會，會被導回首頁（index.js: ensureBackend）
+    if (!ensureBackend()) { /* 已自動導向 */ }
+  </script>
+</head>
+<body>
+  <md-top-app-bar>
+    <div slot="navigationIcon" style="padding-left:6px">
+      <span class="material-symbols-outlined">admin_panel_settings</span>
+    </div>
+    <div slot="headline" style="font-weight:900;letter-spacing:.4px">管理後台</div>
+
+    <div slot="actionItems" style="display:flex; gap:8px; align-items:center;">
+      <!-- 回前台 -->
+      <md-icon-button aria-label="回首頁" title="回首頁" onclick="location.href='index.html'">
+        <span class="material-symbols-outlined">home</span>
+      </md-icon-button>
+
+      <!-- 帳號選單 -->
+      <md-menu id="userMenu" anchor="userBtn">
+        <md-menu-item disabled>
+          <div slot="headline" id="authName">訪客</div>
+          <div slot="supporting-text" id="authMail" class="muted">未登入</div>
+        </md-menu-item>
+        <md-divider></md-divider>
+        <md-menu-item id="menuLogin" onclick="gotoLogin('backend.html')">
+          <span slot="start" class="material-symbols-outlined">login</span>
+          <div slot="headline">登入（選擇身分）</div>
+        </md-menu-item>
+        <md-menu-item id="menuLogout" onclick="logout()" style="display:none">
+          <span slot="start" class="material-symbols-outlined">logout</span>
+          <div slot="headline">登出</div>
+        </md-menu-item>
+      </md-menu>
+      <md-icon-button id="userBtn" aria-label="帳號" title="帳號" onclick="userMenu.show()">
+        <span class="material-symbols-outlined">account_circle</span>
+      </md-icon-button>
+
+      <!-- 緊急四鍵 -->
+      <md-assist-chip class="emg-chip" label="救護車(119)" onclick="EmergencyActions.call119()">
+        <span class="material-symbols-outlined" slot="icon">ambulance</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="AED" onclick="EmergencyActions.aed()">
+        <span class="material-symbols-outlined" slot="icon">heart_plus</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="報警(110)" onclick="EmergencyActions.call110()">
+        <span class="material-symbols-outlined" slot="icon">siren</span>
+      </md-assist-chip>
+      <md-assist-chip class="emg-chip" label="跌倒(模擬)" onclick="EmergencyActions.simFall()"></md-assist-chip>
+    </div>
+  </md-top-app-bar>
+
+  <main class="container" style="padding:22px 0 28px">
+    <div style="margin:8px 0 18px">
+      <h2 style="font-weight:900;letter-spacing:.3px;margin:0">管理項目</h2>
+      <div class="muted" style="margin-top:6px">（本區僅限管委會使用）</div>
+    </div>
+
+    <!-- 模組卡片入口 -->
+    <section id="feature-grid" class="grid" aria-live="polite">
+      <div class="tile" style="background-image:url('https://tse3.mm.bing.net/th/id/OIP.EXTQybl-v_Ot2Uoo3bgi0wHaE7?r=0&rs=1&pid=ImgDetMain&o=7&rm=3')" onclick="gotoTab('announcement')">
+        <div class="badge">公告 / 投票</div><div class="inner"><div class="title">社區公告與投票</div></div>
+      </div>
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('maintenance')">
+        <div class="badge">維修 / 客服</div><div class="inner"><div class="title">設備維護與客服單</div></div>
+      </div>
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('finance')">
+        <div class="badge">帳務 / 收費</div><div class="inner"><div class="title">管理費與收支</div></div>
+      </div>
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('resident')">
+        <div class="badge">住戶 / 人員</div><div class="inner"><div class="title">住戶與社區人員</div></div>
+      </div>
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1608231387042-66d1773070a5?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('visitor')">
+        <div class="badge">訪客 / 包裹</div><div class="inner"><div class="title">訪客與包裹</div></div>
+      </div>
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('meeting')">
+        <div class="badge">會議 / 活動</div><div class="inner"><div class="title">議程與活動</div></div>
+      </div>
+      <div class="tile" style="background-image:url('https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?q=80&w=1400&auto=format&fit=crop')" onclick="gotoTab('emergency')">
+        <div class="badge">緊急服務</div><div class="inner"><div class="title">緊急事件紀錄 / 匯出</div></div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px">
+      <div class="panel-body">
+        <div class="toolbar" style="margin-bottom:10px">
+          <md-filled-button id="btnBack" leading-icon="arrow_back" onclick="backToGrid()" style="display:none">
+            <span class="material-symbols-outlined" slot="icon">arrow_back</span>返回模組列表
+          </md-filled-button>
+
+          <md-filled-tonal-button id="btnAdd" style="display:none">
+            <span class="material-symbols-outlined" slot="icon">add</span>新增
+          </md-filled-tonal-button>
+
+          <md-outlined-button id="btnReload" style="display:none">
+            <span class="material-symbols-outlined" slot="icon">sync</span>重新整理（同步）
+          </md-outlined-button>
+
+          <md-outlined-button id="btnExport" style="display:none">
+            <span class="material-symbols-outlined" slot="icon">download</span>匯出 CSV
+          </md-outlined-button>
+
+          <span id="tabHint" class="muted"></span>
+        </div>
+        <div id="tab-content"></div>
+      </div>
+    </section>
+  </main>
+
+<script>
+  /* ==================== 啟動與共用 ==================== */
+  initPage('backend'); // 權限/PWA/帳號UI
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const esc = (v)=>String(v??'');
+  const fmtTime = (t)=>!t?'':(t.toString().slice(0,16).replace('T',' '));
+
+  // 讓返回按鈕恢復卡片
+  function backToGrid(){
+    $('#feature-grid').style.display='';
+    $('#btnBack').style.display='none';
+    $('#btnAdd').style.display='none';
+    $('#btnReload').style.display='none';
+    $('#btnExport').style.display='none';
+    $('#tabHint').textContent='';
+    $('#tab-content').innerHTML='';
+    scrollTo({top:0, behavior:'smooth'});
+  }
+  window.backToGrid = backToGrid;
+  backToGrid();
+
+  /* ==================== 每個模組的欄位設定 ==================== */
+  const CFG = {
+    announcement: {
+      title:'公告 / 投票',
+      api : {
+        list: ()=>Ann.list(),
+        save: (r)=> r.id ? Ann.update(r) : Ann.create(r),
+        remove: (id)=>Ann.remove(id),
+      },
+      columns: [
+        {key:'title',   label:'標題',   w:260},
+        {key:'content', label:'內容',   w:420},
+        {key:'time',    label:'時間(自動)', ro:true, w:160},
+        {key:'author',  label:'作者',   w:140}
+      ],
+      newRow: ()=>({title:'', content:'', author:''})
+    },
+    maintenance: {
+      title:'維修 / 客服',
+      api : {
+        list: ()=>Maint.list(),
+        save: (r)=> r.id ? Maint.update(r) : Maint.create(r),
+        remove: (id)=>Maint.remove(id),
+      },
+      columns: [
+        {key:'equipment', label:'設備', w:180},
+        {key:'item',      label:'項目', w:240},
+        {key:'time',      label:'時間(自動)', ro:true, w:160},
+        {key:'handler',   label:'承辦', w:160},
+        {key:'cost',      label:'費用', type:'number', w:120},
+        {key:'status',    label:'狀態(open/progress/closed)', w:250},
+        {key:'assignee',  label:'指派', w:160}
+      ],
+      newRow: ()=>({equipment:'', item:'', handler:'', cost:0, status:'open', assignee:''})
+    },
+    finance: {
+      title:'帳務 / 收費',
+      api : {
+        list: ()=>Fee.list(),
+        save: (r)=> r.id ? Fee.update(r) : Fee.create(r),
+        remove: (id)=>Fee.remove(id),
+      },
+      columns: [
+        {key:'room',   label:'房號', w:120},
+        {key:'amount', label:'金額', type:'number', w:120},
+        {key:'due',    label:'到期(YYYY-MM-DD)', w:170},
+        {key:'invoice',label:'發票', w:170},
+        {key:'paid',   label:'狀態(自動)', ro:true, w:120}
+      ],
+      newRow: ()=>({room:'', amount:0, due:'', invoice:''})
+    },
+    resident: {
+      title:'住戶 / 人員',
+      api : {
+        list: ()=>Resi.list(),
+        save: (r)=> r.id ? Resi.update(r) : Resi.create(r),
+        remove: (id)=>Resi.remove(id),
+      },
+      columns: [
+        {key:'name',  label:'姓名',  w:160},
+        {key:'room',  label:'房號',  w:120},
+        {key:'phone', label:'電話',  w:170},
+        {key:'email', label:'Email', w:240},
+        {key:'role',  label:'身分(resident/committee/vendor)', w:280}
+      ],
+      newRow: ()=>({name:'', room:'', phone:'', email:'', role:'resident'})
+    },
+    visitor: {
+      title:'訪客',
+      api : {
+        list: ()=>Visit.list(),
+        save: (r)=> r.id ? (Visit.update ? Visit.update(r) : DB.upsert('visitors', r)) : Visit.checkin(r),
+        remove: (id)=>Visit.remove(id),
+        checkout: (id)=>Visit.checkout(id)
+      },
+      columns: [
+        {key:'name', label:'姓名', w:160},
+        {key:'room', label:'房號', w:120},
+        {key:'in',   label:'進場(自動)', ro:true, w:170},
+        {key:'out',  label:'離場(簽出自動)', ro:true, w:170}
+      ],
+      newRow: ()=>({name:'', room:''})
+    },
+    meeting: {
+      title:'會議 / 活動',
+      api : {
+        list: ()=>Meet.list(),
+        save: (r)=> r.id ? Meet.update(r) : Meet.create(r),
+        remove: (id)=>Meet.remove(id),
+      },
+      columns: [
+        {key:'topic',   label:'主題', w:240},
+        {key:'time',    label:'時間(YYYY-MM-DD HH:mm)', w:220},
+        {key:'location',label:'地點', w:220},
+        {key:'notes',   label:'備註', w:280}
+      ],
+      newRow: ()=>({topic:'', time:'', location:'', notes:''})
+    },
+    emergency: {
+      title:'緊急服務（只讀：可刪除、可匯出）',
+      api : {
+        list: ()=>Emergency.list(),
+        save: async()=>{}, // 只讀
+        remove: (id)=>Emergency.remove(id),
+      },
+      columns: [
+        {key:'type', label:'類型', ro:true, w:200},
+        {key:'time', label:'時間', ro:true, w:180},
+        {key:'by',   label:'使用者', ro:true, w:220},
+        {key:'note', label:'紀錄', ro:true, w:420}
+      ],
+      newRow: null
+    }
+  };
+
+  /* ==================== 小工具 ==================== */
+  const tf = ({value='', type='text', label='', width})=>{
+    const w = width ? `style="width:${width}px"` : '';
+    const attr = type==='number' ? `type="number" step="any"` : 'type="text"';
+    return `<md-outlined-text-field ${w} ${attr} value="${esc(value)}" label="${esc(label)}"></md-outlined-text-field>`;
+  };
+  const rowBtns = (r, mod)=>`
+    <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap">
+      <md-filled-button data-act="save"   data-id="${esc(r.id||'')}" data-mod="${mod}">
+        <span class="material-symbols-outlined" slot="icon">save</span>儲存
+      </md-filled-button>
+      <md-outlined-button data-act="cancel" data-id="${esc(r.id||'')}" data-mod="${mod}">
+        <span class="material-symbols-outlined" slot="icon">close</span>取消
+      </md-outlined-button>
+      ${mod!=='emergency' ? `
+        <md-text-button style="color:#b00020" data-act="remove" data-id="${esc(r.id||'')}" data-mod="${mod}">
+          <span class="material-symbols-outlined" slot="icon">delete</span>刪除
+        </md-text-button>` : ''
+      }
+    </div>`;
+
+  function collectRow(tr){
+    const obj = {};
+    $$('td[data-key]', tr).forEach(td=>{
+      const key = td.dataset.key;
+      const ctl = td.querySelector('md-outlined-text-field');
+      if (!ctl) return;
+      let val = ctl.value ?? '';
+      if (ctl.type === 'number') val = Number(val || 0);
+      obj[key] = val;
+    });
+    return obj;
+  }
+
+  function buildTableSkeleton(columns){
+    const thead = `
+      <thead>
+        <tr>
+          ${columns.map(c=>`<th style="min-width:${c.w||140}px">${c.label}</th>`).join('')}
+          <th style="min-width:240px">動作</th>
+        </tr>
+      </thead>`;
+    return `<div style="overflow:auto">
+      <table>
+        ${thead}
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>`;
+  }
+
+  /* ==================== 主渲染 ==================== */
+  async function renderCRUD(tab){
+    const cfg = CFG[tab];
+    if (!cfg){ $('#tab-content').innerHTML = `<div class="muted">未支援的模組：${tab}</div>`; return; }
+
+    // 標題提示
+    $('#tabHint').textContent = '當前模組：' + cfg.title;
+
+    // 工具列可視狀態
+    $('#btnBack').style.display   = '';
+    $('#btnAdd').style.display    = cfg.newRow ? '' : 'none';
+    $('#btnReload').style.display = '';
+    $('#btnExport').style.display = (tab === 'emergency') ? '' : 'none';
+
+    // 表格骨架
+    $('#tab-content').innerHTML = buildTableSkeleton(cfg.columns);
+    const tbody = $('#tbody');
+
+    // 取得資料
+    let rows = cfg.api.list();
+    if (tab === 'emergency') rows = rows.map(x => ({...x, time: fmtTime(x.time)}));
+
+    // 產列
+    const drawRow = (r, isNew=false)=>{
+      const cells = cfg.columns.map(col=>{
+        const val = col.key==='time' ? fmtTime(r[col.key]) : (r[col.key] ?? '');
+        if (col.ro) return `<td data-key="${col.key}">${esc(val)}</td>`;
+        const type = col.type || (typeof val === 'number' ? 'number' : 'text');
+        return `<td data-key="${col.key}">${tf({value:val, type, width:col.w, label:col.label})}</td>`;
+      }).join('');
+      const extra = (tab==='visitor' && !r.out && r.id)
+        ? `<md-text-button data-act="checkout" data-id="${esc(r.id)}" data-mod="visitor">
+             <span class="material-symbols-outlined" slot="icon">logout</span>簽出
+           </md-text-button>`
+        : '';
+      const tr = document.createElement('tr');
+      tr.dataset.id  = r.id || '';
+      tr.dataset.mod = tab;
+      if (isNew) tr.dataset.new = '1';
+      tr.innerHTML = `${cells}<td>${extra}${rowBtns(r, tab)}</td>`;
+      tbody.appendChild(tr);
+    };
+
+    rows.forEach(r=>drawRow(r, false));
+
+    // 綁定工具列動作
+    $('#btnAdd').onclick = ()=> cfg.newRow && drawRow(cfg.newRow(), true);
+    $('#btnReload').onclick = async ()=>{ try{ await DB.pullAll(); renderCRUD(tab); }catch(e){ alert(e?.message||e); } };
+    $('#btnExport').onclick = ()=> {
+      if (tab!=='emergency') return;
+      const rows = Emergency.list();
+      const header = ['type','time','by','note'];
+      const escCSV = (s)=>('"'+String(s??'').replace(/"/g,'""')+'"');
+      const body = rows.map(r=>[r.type, r.time, r.by, r.note].map(escCSV).join(',')).join('\n');
+      const blob = new Blob([header.join(',')+'\n'+body], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a');
+      a.href = url; a.download = `emergencies_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 500);
+    };
+
+    // 列內事件（儲存 / 取消 / 刪除 / 簽出）
+    tbody.addEventListener('click', async (ev)=>{
+      const btn = ev.target.closest('[data-act]'); if(!btn) return;
+      const act = btn.dataset.act; const id = btn.dataset.id; const tr = btn.closest('tr');
+
+      try{
+        if (act==='cancel'){ tr.remove(); return; }
+
+        if (act==='remove'){
+          if (!confirm('確定刪除？')) return;
+          await cfg.api.remove(id);
+          tr.remove(); return;
+        }
+
+        if (act==='checkout' && tab==='visitor'){
+          await CFG.visitor.api.checkout(id);
+          await DB.pullAll();
+          renderCRUD('visitor');
+          return;
+        }
+
+        if (act==='save'){
+          const data = collectRow(tr);
+          if (id) data.id = id;
+          // 模組特例
+          if (tab==='finance') data.amount = Number(data.amount||0);
+          await cfg.api.save(data);
+          await DB.pullAll(); // 以雲端為準
+          renderCRUD(tab);
+          return;
+        }
+      }catch(ex){
+        alert(ex?.message||ex);
+      }
+    });
+  }
+
+  /* ==================== 分頁切換 ==================== */
+  window.gotoTab = function gotoTab(key){
+    $('#feature-grid').style.display='none';
+    $('#btnBack').style.display='';
+    $('#btnAdd').style.display='none';
+    $('#btnReload').style.display='';
+    $('#btnExport').style.display='none';
+    renderCRUD(key);
+  };
+</script>
+
+
+</body>
+</html>
