@@ -1,5 +1,5 @@
 import { Client, middleware } from "@line/bot-sdk";
-import { Buffer } from 'node:buffer';
+import { Buffer } from "node:buffer";
 
 // LINE Bot 配置
 const lineConfig = {
@@ -17,17 +17,13 @@ export const config = {
 };
 
 /**
- * LINE Webhook 处理函数
- * @param {import('next').NextApiRequest} req - Next.js API 请求对象
- * @param {import('next').NextApiResponse} res - Next.js API 响应对象
+ * LINE Webhook 處理函數
  */
 export default async function handler(req, res) {
   if (req.method === "POST") {
     try {
-      // 手动解析请求体并验证 LINE 签名
       const rawBody = await getRawBody(req);
-      
-      // 使用 LINE middleware 验证签名
+
       await new Promise((resolve, reject) => {
         middleware(lineConfig)(
           { ...req, body: JSON.parse(rawBody) },
@@ -41,12 +37,10 @@ export default async function handler(req, res) {
 
       const events = JSON.parse(rawBody).events || [];
 
-      // 处理接收到的事件
       for (const event of events) {
         if (event.type === "message" && event.message.type === "text") {
           console.log("收到訊息:", event.message.text, "來自:", event.source.userId);
 
-          // 回复消息
           await client.replyMessage(event.replyToken, {
             type: "text",
             text: "Hello from Next.js on Vercel 🚀",
@@ -65,18 +59,16 @@ export default async function handler(req, res) {
 }
 
 /**
- * 获取请求的原始 body 内容
- * @param {import('next').NextApiRequest} req - Next.js API 请求对象
- * @returns {Promise<string>} - 请求的原始 body 内容
+ * 取得原始請求內容
  */
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    
-    req.on('data', (chunk) => chunks.push(chunk));
-    req.on('error', (err) => reject(err));
-    req.on('end', () => {
-      resolve(Buffer.concat(chunks).toString('utf8'));
+
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("error", (err) => reject(err));
+    req.on("end", () => {
+      resolve(Buffer.concat(chunks).toString("utf8"));
     });
   });
 }
