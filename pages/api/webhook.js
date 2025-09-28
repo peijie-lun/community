@@ -1,4 +1,4 @@
-import { Client, middleware } from "@line/bot-sdk";
+import { middleware } from "@line/bot-sdk";
 import { Buffer } from "node:buffer";
 
 // LINE Bot 配置
@@ -7,18 +7,12 @@ const lineConfig = {
   channelSecret: process.env.LINE_CHANNEL_SECRET,
 };
 
-const client = new Client(lineConfig);
-
-// Next.js API 路由配置 - 禁用默认的 bodyParser 以手动处理请求体
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-/**
- * LINE Webhook 處理函數
- */
 export default async function handler(req, res) {
   if (req.method === "POST") {
     try {
@@ -41,9 +35,22 @@ export default async function handler(req, res) {
         if (event.type === "message" && event.message.type === "text") {
           console.log("收到訊息:", event.message.text, "來自:", event.source.userId);
 
-          await client.replyMessage(event.replyToken, {
-            type: "text",
-            text: "Hello from Next.js on Vercel 🚀",
+          // 使用 fetch 回覆訊息
+          await fetch("https://api.line.me/v2/bot/message/reply", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
+            },
+            body: JSON.stringify({
+              replyToken: event.replyToken,
+              messages: [
+                {
+                  type: "text",
+                  text: "Hello from Next.js on Vercel 🚀",
+                },
+              ],
+            }),
           });
         }
       }
@@ -58,9 +65,6 @@ export default async function handler(req, res) {
   }
 }
 
-/**
- * 取得原始請求內容
- */
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
